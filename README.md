@@ -21,6 +21,7 @@ This project is suitable for:
 * Private day-to-day memory timeline with date and time-based view
 * Support for multiple memory types: photo, video, audio, and text
 * Future time-lock to unlock selected memories at a later date
+
 * Trusted receivers (optional) for controlled future sharing
 * Biometric security using fingerprint or Face ID
 * Cloud and local secure storage for reliable data handling
