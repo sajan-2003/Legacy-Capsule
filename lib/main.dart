@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'screens/home_screen.dart';
+import 'screens/front_page.dart';
+import 'theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -11,19 +12,10 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Legacy Capsule',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.black,
-          brightness: Brightness.light,
-        ),
-      ),
-      home: const HomeScreen(),
-
+      title: 'Legacy Capsule',
+      theme: AppTheme.lightTheme,
+      home: const SplashScreen(),
     );
   }
 }
-
-
