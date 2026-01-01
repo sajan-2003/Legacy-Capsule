@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'home_screen.dart';
+import 'signup_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,8 +18,8 @@ class _LoginScreenState extends State<LoginScreen> {
   String _errorMessage = '';
 
   // Mock credentials for demo
-  final String _mockUsername = 'sarah';
-  final String _mockPassword = 'legacy123';
+  final String _mockUsername = 'admin';
+  final String _mockPassword = 'admin123';
   final String _mockPin = '1234';
 
   void _handleLogin() {
@@ -79,7 +80,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48.0),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 32.0, vertical: 48.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -137,7 +139,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: "Enter your username",
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -169,14 +172,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       Expanded(
                         child: GestureDetector(
-                          onTap: () => setState(() => _loginMethod = 'password'),
+                          onTap: () =>
+                              setState(() => _loginMethod = 'password'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: _loginMethod == 'password' ? Colors.white : Colors.transparent,
+                              color: _loginMethod == 'password'
+                                  ? Colors.white
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: _loginMethod == 'password'
-                                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                  ? [
+                                      const BoxShadow(
+                                          color: Colors.black12, blurRadius: 4)
+                                    ]
                                   : [],
                             ),
                             child: Text(
@@ -184,7 +193,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: _loginMethod == 'password' ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                                color: _loginMethod == 'password'
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                           ),
@@ -196,10 +207,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(vertical: 10),
                             decoration: BoxDecoration(
-                              color: _loginMethod == 'pin' ? Colors.white : Colors.transparent,
+                              color: _loginMethod == 'pin'
+                                  ? Colors.white
+                                  : Colors.transparent,
                               borderRadius: BorderRadius.circular(8),
                               boxShadow: _loginMethod == 'pin'
-                                  ? [const BoxShadow(color: Colors.black12, blurRadius: 4)]
+                                  ? [
+                                      const BoxShadow(
+                                          color: Colors.black12, blurRadius: 4)
+                                    ]
                                   : [],
                             ),
                             child: Text(
@@ -207,7 +223,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
-                                color: _loginMethod == 'pin' ? const Color(0xFF0F172A) : const Color(0xFF64748B),
+                                color: _loginMethod == 'pin'
+                                    ? const Color(0xFF0F172A)
+                                    : const Color(0xFF64748B),
                               ),
                             ),
                           ),
@@ -228,11 +246,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 const SizedBox(height: 8),
                 TextField(
-                  controller: _loginMethod == 'password' ? _passwordController : _pinController,
+                  controller: _loginMethod == 'password'
+                      ? _passwordController
+                      : _pinController,
                   obscureText: true,
-                  keyboardType: _loginMethod == 'pin' ? TextInputType.number : TextInputType.text,
+                  keyboardType: _loginMethod == 'pin'
+                      ? TextInputType.number
+                      : TextInputType.text,
                   maxLength: _loginMethod == 'pin' ? 4 : null,
-                  textAlign: _loginMethod == 'pin' ? TextAlign.center : TextAlign.start,
+                  textAlign: _loginMethod == 'pin'
+                      ? TextAlign.center
+                      : TextAlign.start,
                   style: _loginMethod == 'pin'
                       ? const TextStyle(fontSize: 24, letterSpacing: 8)
                       : null,
@@ -241,7 +265,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: _loginMethod == 'password' ? "••••••••" : "••••",
                     filled: true,
                     fillColor: Colors.white,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 14),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                       borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
@@ -265,35 +290,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(color: Color(0xFFB91C1C), fontSize: 14),
+                      style: const TextStyle(
+                          color: Color(0xFFB91C1C), fontSize: 14),
                     ),
                   ),
                 ],
-
-                const SizedBox(height: 16),
-
-                // Demo Credentials Helper
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
-                    border: Border.all(color: const Color(0xFFBAE6FD)),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        "Demo credentials:",
-                        style: TextStyle(color: Color(0xFF0369A1), fontSize: 13, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text("Username: $_mockUsername", style: const TextStyle(color: Color(0xFF0369A1), fontSize: 13)),
-                      Text("Password: $_mockPassword", style: const TextStyle(color: Color(0xFF0369A1), fontSize: 13)),
-                      Text("PIN: $_mockPin", style: const TextStyle(color: Color(0xFF0369A1), fontSize: 13)),
-                    ],
-                  ),
-                ),
 
                 const SizedBox(height: 32),
 
@@ -315,19 +316,119 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
 
-                TextButton(
-                  onPressed: () {},
-                  child: const Text(
-                    "Create new account",
-                    style: TextStyle(color: Color(0xFF0369A1), fontWeight: FontWeight.w500),
-                  ),
+                // OR Divider
+                const Row(
+                  children: [
+                    Expanded(
+                      child: Divider(
+                        color: Color(0xFFE2E8F0),
+                      ),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        "OR CONTINUE WITH",
+                        style: TextStyle(
+                            color: Color(0xFF94A3B8),
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1),
+                      ),
+                    ),
+                    Expanded(
+                      child: Divider(
+                        color: Color(0xFFE2E8F0),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 24),
+
+                // Social Login Icons Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildSocialIcon(
+                      icon: Icons.g_mobiledata,
+                      color: Colors.white,
+                      iconColor: const Color(0xFF0F172A),
+                      borderColor: const Color(0xFFE2E8F0),
+                    ),
+                    const SizedBox(width: 20),
+                    _buildSocialIcon(
+                      icon: Icons.facebook,
+                      color: const Color(0xFF1877F2),
+                      iconColor: Colors.white,
+                    ),
+                    const SizedBox(width: 20),
+                    _buildSocialIcon(
+                      icon: Icons.apple,
+                      color: Colors.black,
+                      iconColor: Colors.white,
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 32),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text("New to Capsule? ",
+                        style: TextStyle(color: Color(0xFF64748B))),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const SignupScreen()),
+                        );
+                      },
+                      child: const Text(
+                        "Create account",
+                        style: TextStyle(
+                            color: Color(0xFF0369A1),
+                            fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSocialIcon({
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+    Color? borderColor,
+  }) {
+    return InkWell(
+      onTap: _navigateToHome,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(14),
+          border: borderColor != null ? Border.all(color: borderColor) : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Icon(icon, size: 32, color: iconColor),
       ),
     );
   }

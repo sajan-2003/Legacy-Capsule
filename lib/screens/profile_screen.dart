@@ -1,39 +1,11 @@
 import 'package:flutter/material.dart';
 import 'front_page.dart';
+import 'security_settings_screen.dart';
+import 'time_lock_screen.dart';
+import 'update_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
-
-  final List<Map<String, dynamic>> settingsItems = const [
-    {
-      'icon': Icons.shield_outlined,
-      'label': 'Security Settings',
-      'description': 'Password, biometrics, encryption',
-      'color': Color(0xFF0284C7),
-      'bgColor': Color(0xFFE0F2FE),
-    },
-    {
-      'icon': Icons.history_toggle_off_outlined,
-      'label': 'Time-Lock Settings',
-      'description': 'Set future unlock dates for memories',
-      'color': Color(0xFFB45309),
-      'bgColor': Color(0xFFFEF3C7),
-    },
-    {
-      'icon': Icons.people_outline,
-      'label': 'Trusted Contacts',
-      'description': 'Emergency access and legacy planning',
-      'color': Color(0xFF7C3AED),
-      'bgColor': Color(0xFFF3E8FF),
-    },
-    {
-      'icon': Icons.description_outlined,
-      'label': 'Privacy Policy',
-      'description': 'How we protect your data',
-      'color': Color(0xFF475569),
-      'bgColor': Color(0xFFF1F5F9),
-    }
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -58,137 +30,231 @@ class ProfileScreen extends StatelessWidget {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // User Info
+            // 1. TOP CONTAINER (Profile Info - Editable)
             Container(
-              width: double.infinity,
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 32),
-              child: Column(
-                children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black12,
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        )
-                      ],
-                    ),
-                    child: const Icon(Icons.person, size: 48, color: Colors.white),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    "Sarah Johnson",
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
-                    ),
-                  ),
-                  const Text(
-                    "sarah.johnson@email.com",
-                    style: TextStyle(color: Color(0xFF64748B), fontSize: 16),
-                  ),
-                  const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0F9FF),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Text(
-                      "Member since Dec 2024",
-                      style: TextStyle(color: Color(0xFF0369A1), fontSize: 13, fontWeight: FontWeight.w500),
-                    ),
-                  ),
+              margin: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
                 ],
               ),
-            ),
-
-            // Settings List
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: const Color(0xFFF1F5F9)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.02),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    )
-                  ],
-                ),
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: settingsItems.length,
-                  separatorBuilder: (context, index) => const Divider(height: 1, color: Color(0xFFF1F5F9)),
-                  itemBuilder: (context, index) {
-                    final item = settingsItems[index];
-                    return ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                      leading: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: item['bgColor'],
-                          borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const UpdateProfileScreen(
+                        currentName: "Sarah Johnson",
+                        currentEmail: "sarah.johnson@email.com",
+                      ),
+                    ),
+                  );
+                },
+                borderRadius: BorderRadius.circular(24),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Stack(
+                        alignment: Alignment.bottomRight,
+                        children: [
+                          Container(
+                            width: 70,
+                            height: 70,
+                            decoration: const BoxDecoration(
+                              shape: BoxShape.circle,
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+                              ),
+                            ),
+                            child: const Icon(Icons.person, size: 35, color: Colors.white),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF0284C7),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.edit, size: 10, color: Colors.white),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Sarah Johnson",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                            Text(
+                              "sarah.johnson@email.com",
+                              style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                            ),
+                          ],
                         ),
-                        child: Icon(item['icon'], color: item['color']),
                       ),
-                      title: Text(
-                        item['label'],
-                        style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
-                      ),
-                      subtitle: Text(
-                        item['description'],
-                        style: const TextStyle(color: Color(0xFF64748B), fontSize: 13),
-                      ),
-                      trailing: const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
-                      onTap: () {},
-                    );
-                  },
+                      const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                    ],
+                  ),
                 ),
               ),
             ),
 
-            // Logout Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.pushAndRemoveUntil(
-                    context,
-                    MaterialPageRoute(builder: (_) => const SplashScreen()),
-                    (route) => false,
-                  );
-                },
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text("Log Out"),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 52),
-                  foregroundColor: const Color(0xFFDC2626),
-                  side: const BorderSide(color: Color(0xFFFECACA)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            // 2. LOWER SUB-CONTAINER (Authentication, Time-Lock, Logout)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  children: [
+                    _buildListTile(
+                      icon: Icons.shield_outlined,
+                      label: "Authentication",
+                      color: const Color(0xFF0284C7),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SecuritySettingsScreen()),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1, indent: 60, color: Color(0xFFF1F5F9)),
+                    _buildListTile(
+                      icon: Icons.history_toggle_off_outlined,
+                      label: "Time-Lock Settings",
+                      color: const Color(0xFFB45309),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const TimeLockScreen()),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1, indent: 60, color: Color(0xFFF1F5F9)),
+                    _buildListTile(
+                      icon: Icons.logout_rounded,
+                      label: "Logout",
+                      color: const Color(0xFFDC2626),
+                      onTap: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const SplashScreen()),
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ],
                 ),
+              ),
+            ),
+
+            // MORE TEXT
+            const Padding(
+              padding: EdgeInsets.only(left: 32, top: 16, bottom: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "MORE",
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF94A3B8),
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ),
+            ),
+
+            // 3. SECOND MAIN CONTAINER (About Us, Support)
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
+                children: [
+                  _buildListTile(
+                    icon: Icons.info_outline_rounded,
+                    label: "About Us",
+                    color: const Color(0xFF475569),
+                    onTap: () {},
+                  ),
+                  const Divider(height: 1, indent: 60, color: Color(0xFFF1F5F9)),
+                  _buildListTile(
+                    icon: Icons.help_outline_rounded,
+                    label: "Help & Support",
+                    color: const Color(0xFF475569),
+                    onTap: () {},
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildListTile({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      onTap: onTap,
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      title: Text(
+        label,
+        style: const TextStyle(
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF334155),
+          fontSize: 15,
+        ),
+      ),
+      trailing: const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1), size: 18),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }
 }

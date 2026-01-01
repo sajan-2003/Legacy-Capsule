@@ -12,6 +12,9 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.2
   intl: ^0.18.1
+  image_picker: ^1.0.4
+  flutter_contacts: ^1.1.9+2
+  flutter_facebook_auth: ^6.1.0
 
 dev_dependencies:
   flutter_test:

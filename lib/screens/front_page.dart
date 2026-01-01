@@ -44,10 +44,10 @@ class _SplashScreenState extends State<SplashScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF0C4A6E).withOpacity(0.4), // sky-900/40
-                    const Color(0xFF075985).withOpacity(0.5), // sky-800/50
-                    const Color(0xFF082F49).withOpacity(0.6), // sky-900/60
-                    const Color(0xFF082F49).withOpacity(0.7), // sky-950/70
+                    const Color(0xFF0C4A6E).withValues(alpha: 0.4), // sky-900/40
+                    const Color(0xFF075985).withValues(alpha: 0.5), // sky-800/50
+                    const Color(0xFF082F49).withValues(alpha: 0.6), // sky-900/60
+                    const Color(0xFF082F49).withValues(alpha: 0.7), // sky-950/70
                   ],
                 ),
               ),
@@ -63,9 +63,9 @@ class _SplashScreenState extends State<SplashScreen> {
                   width: 80,
                   height: 80,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
+                    color: Colors.white.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white.withOpacity(0.2)),
+                    border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                   ),
                   child: Center(
                     child: Stack(
@@ -85,15 +85,15 @@ class _SplashScreenState extends State<SplashScreen> {
                           width: 24,
                           height: 24,
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                           ),
                           child: Center(
                             child: Container(
                               width: 12,
                               height: 12,
-                              decoration: BoxDecoration(
-                                border: const Border(
+                              decoration: const BoxDecoration(
+                                border: Border(
                                   left: BorderSide(color: Color(0xFF0369A1), width: 1.5),
                                   bottom: BorderSide(color: Color(0xFF0369A1), width: 1.5),
                                 ),
@@ -185,7 +185,7 @@ class _LoadingDotsState extends State<_LoadingDots> with SingleTickerProviderSta
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.3 + (value * 0.7)),
+                color: Colors.white.withValues(alpha: 0.3 + (value * 0.7)),
                 shape: BoxShape.circle,
               ),
             );
