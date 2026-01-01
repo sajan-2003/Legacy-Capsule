@@ -5,26 +5,38 @@ import 'time_lock_screen.dart';
 import 'update_profile_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final Function(bool) onThemeChanged;
+  final ThemeMode currentThemeMode;
+
+  const ProfileScreen({
+    super.key,
+    required this.onThemeChanged,
+    required this.currentThemeMode,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF64748B)),
+          icon: Icon(Icons.arrow_back,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Profile",
-          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+          style:
+              theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+          child: Container(color: theme.dividerColor, height: 1),
         ),
       ),
       body: SingleChildScrollView(
@@ -32,13 +44,15 @@ class ProfileScreen extends StatelessWidget {
           children: [
             // 1. TOP CONTAINER (Profile Info - Editable)
             Container(
-              margin: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 12),
+              margin: const EdgeInsets.only(
+                  left: 24, right: 24, top: 24, bottom: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
+                border: isDark ? Border.all(color: theme.dividerColor) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -67,47 +81,62 @@ class ProfileScreen extends StatelessWidget {
                           Container(
                             width: 70,
                             height: 70,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               gradient: LinearGradient(
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
-                                colors: [Color(0xFF38BDF8), Color(0xFF0284C7)],
+                                colors: isDark
+                                    ? [
+                                        theme.colorScheme.primary,
+                                        theme.colorScheme.primary
+                                            .withValues(alpha: 0.7)
+                                      ]
+                                    : [
+                                        const Color(0xFF38BDF8),
+                                        const Color(0xFF0284C7)
+                                      ],
                               ),
                             ),
-                            child: const Icon(Icons.person, size: 35, color: Colors.white),
+                            child: const Icon(Icons.person,
+                                size: 35, color: Colors.white),
                           ),
                           Container(
                             padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF0284C7),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary,
                               shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: theme.colorScheme.surface, width: 2),
                             ),
-                            child: const Icon(Icons.edit, size: 10, color: Colors.white),
+                            child: const Icon(Icons.edit,
+                                size: 10, color: Colors.white),
                           ),
                         ],
                       ),
                       const SizedBox(width: 16),
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               "Sarah Johnson",
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF0F172A),
-                              ),
+                              style: theme.textTheme.titleLarge
+                                  ?.copyWith(fontSize: 18),
                             ),
                             Text(
                               "sarah.johnson@email.com",
-                              style: TextStyle(color: Color(0xFF64748B), fontSize: 14),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.5),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const Icon(Icons.chevron_right, color: Color(0xFF94A3B8)),
+                      Icon(Icons.chevron_right,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.3)),
                     ],
                   ),
                 ),
@@ -118,11 +147,12 @@ class ProfileScreen extends StatelessWidget {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
+                border: isDark ? Border.all(color: theme.dividerColor) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -133,37 +163,90 @@ class ProfileScreen extends StatelessWidget {
                 child: Column(
                   children: [
                     _buildListTile(
+                      context: context,
                       icon: Icons.shield_outlined,
                       label: "Authentication",
-                      color: const Color(0xFF0284C7),
+                      color: theme.colorScheme.primary,
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const SecuritySettingsScreen()),
+                          MaterialPageRoute(
+                              builder: (_) => const SecuritySettingsScreen()),
                         );
                       },
                     ),
-                    const Divider(height: 1, indent: 60, color: Color(0xFFF1F5F9)),
+                    Divider(height: 1, indent: 60, color: theme.dividerColor),
                     _buildListTile(
+                      context: context,
                       icon: Icons.history_toggle_off_outlined,
                       label: "Time-Lock Settings",
                       color: const Color(0xFFB45309),
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const TimeLockScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => TimeLockScreen(
+                              isSearching: false,
+                              searchController: TextEditingController(),
+                              onThemeChanged: onThemeChanged,
+                            ),
+                          ),
                         );
                       },
                     ),
-                    const Divider(height: 1, indent: 60, color: Color(0xFFF1F5F9)),
+                    Divider(height: 1, indent: 60, color: theme.dividerColor),
+                    // Theme Switch ListTile
+                    ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.amber.withValues(alpha: 0.1)
+                              : Colors.blueGrey.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          isDark
+                              ? Icons.wb_sunny_rounded
+                              : Icons.nightlight_round,
+                          color: isDark ? Colors.amber : Colors.blueGrey,
+                          size: 20,
+                        ),
+                      ),
+                      title: Text(
+                        "Dark Mode",
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.8),
+                          fontSize: 15,
+                        ),
+                      ),
+                      trailing: Switch(
+                        value: isDark,
+                        activeTrackColor:
+                            theme.colorScheme.primary.withValues(alpha: 0.5),
+                        activeThumbColor: theme.colorScheme.primary,
+                        onChanged: (val) => onThemeChanged(val),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 4),
+                    ),
+                    Divider(height: 1, indent: 60, color: theme.dividerColor),
                     _buildListTile(
+                      context: context,
                       icon: Icons.logout_rounded,
                       label: "Logout",
                       color: const Color(0xFFDC2626),
                       onTap: () {
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (_) => const SplashScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => SplashScreen(
+                              onThemeChanged: onThemeChanged,
+                              currentThemeMode: currentThemeMode,
+                            ),
+                          ),
                           (route) => false,
                         );
                       },
@@ -174,8 +257,8 @@ class ProfileScreen extends StatelessWidget {
             ),
 
             // MORE TEXT
-            const Padding(
-              padding: EdgeInsets.only(left: 32, top: 16, bottom: 8),
+            Padding(
+              padding: const EdgeInsets.only(left: 32, top: 16, bottom: 8),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
@@ -183,7 +266,7 @@ class ProfileScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF94A3B8),
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -194,11 +277,12 @@ class ProfileScreen extends StatelessWidget {
             Container(
               margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: theme.colorScheme.surface,
                 borderRadius: BorderRadius.circular(24),
+                border: isDark ? Border.all(color: theme.dividerColor) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -207,16 +291,22 @@ class ProfileScreen extends StatelessWidget {
               child: Column(
                 children: [
                   _buildListTile(
+                    context: context,
                     icon: Icons.info_outline_rounded,
                     label: "About Us",
-                    color: const Color(0xFF475569),
+                    color: isDark
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
+                        : const Color(0xFF475569),
                     onTap: () {},
                   ),
-                  const Divider(height: 1, indent: 60, color: Color(0xFFF1F5F9)),
+                  Divider(height: 1, indent: 60, color: theme.dividerColor),
                   _buildListTile(
+                    context: context,
                     icon: Icons.help_outline_rounded,
                     label: "Help & Support",
-                    color: const Color(0xFF475569),
+                    color: isDark
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
+                        : const Color(0xFF475569),
                     onTap: () {},
                   ),
                 ],
@@ -230,11 +320,13 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildListTile({
+    required BuildContext context,
     required IconData icon,
     required String label,
     required Color color,
     required VoidCallback onTap,
   }) {
+    final theme = Theme.of(context);
     return ListTile(
       onTap: onTap,
       leading: Container(
@@ -247,13 +339,14 @@ class ProfileScreen extends StatelessWidget {
       ),
       title: Text(
         label,
-        style: const TextStyle(
+        style: TextStyle(
           fontWeight: FontWeight.w500,
-          color: Color(0xFF334155),
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
           fontSize: 15,
         ),
       ),
-      trailing: const Icon(Icons.chevron_right, color: Color(0xFFCBD5E1), size: 18),
+      trailing: Icon(Icons.chevron_right,
+          color: theme.colorScheme.onSurface.withValues(alpha: 0.2), size: 18),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }

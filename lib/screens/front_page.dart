@@ -4,7 +4,14 @@ import 'package:flutter/material.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  final Function(bool) onThemeChanged;
+  final ThemeMode currentThemeMode;
+
+  const SplashScreen({
+    super.key,
+    required this.onThemeChanged,
+    required this.currentThemeMode,
+  });
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -18,7 +25,12 @@ class _SplashScreenState extends State<SplashScreen> {
       if (mounted) {
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
+          MaterialPageRoute(
+            builder: (_) => LoginScreen(
+              onThemeChanged: widget.onThemeChanged,
+              currentThemeMode: widget.currentThemeMode,
+            ),
+          ),
         );
       }
     });
@@ -44,10 +56,10 @@ class _SplashScreenState extends State<SplashScreen> {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    const Color(0xFF0C4A6E).withValues(alpha: 0.4), // sky-900/40
-                    const Color(0xFF075985).withValues(alpha: 0.5), // sky-800/50
-                    const Color(0xFF082F49).withValues(alpha: 0.6), // sky-900/60
-                    const Color(0xFF082F49).withValues(alpha: 0.7), // sky-950/70
+                    const Color(0xFF0C4A6E).withValues(alpha: 0.4),
+                    const Color(0xFF075985).withValues(alpha: 0.5),
+                    const Color(0xFF082F49).withValues(alpha: 0.6),
+                    const Color(0xFF082F49).withValues(alpha: 0.7),
                   ],
                 ),
               ),
@@ -58,7 +70,7 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo/Icon
+                // Logo
                 Container(
                   width: 80,
                   height: 80,
@@ -71,7 +83,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        // Calendar-like frame
                         Container(
                           width: 48,
                           height: 52,
@@ -80,7 +91,6 @@ class _SplashScreenState extends State<SplashScreen> {
                             borderRadius: BorderRadius.circular(4),
                           ),
                         ),
-                        // Clock-like circle inside
                         Container(
                           width: 24,
                           height: 24,
@@ -106,7 +116,6 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
-                // App Name
                 const Text(
                   "Legacy Capsule",
                   style: TextStyle(
@@ -126,7 +135,6 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                 ),
                 const SizedBox(height: 64),
-                // Loading Indicator
                 const _LoadingDots(),
                 const SizedBox(height: 12),
                 const Text(

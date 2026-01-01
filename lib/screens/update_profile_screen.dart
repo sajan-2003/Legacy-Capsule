@@ -36,6 +36,7 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   }
 
   Future<void> _selectDate(BuildContext context) async {
+    final theme = Theme.of(context);
     final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: DateTime(2000),
@@ -43,11 +44,11 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
       lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF0284C7),
+          data: theme.copyWith(
+            colorScheme: theme.colorScheme.copyWith(
+              primary: theme.colorScheme.primary,
               onPrimary: Colors.white,
-              onSurface: Color(0xFF0F172A),
+              onSurface: theme.colorScheme.onSurface,
             ),
           ),
           child: child!,
@@ -75,22 +76,25 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF64748B)),
+          icon: Icon(Icons.arrow_back, color: theme.colorScheme.onSurface.withOpacity(0.6)),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
+        title: Text(
           "Update Profile",
-          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.w600),
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+          child: Container(color: theme.dividerColor, height: 1),
         ),
       ),
       body: SingleChildScrollView(
@@ -106,19 +110,20 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                     height: 120,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFF1F5F9),
-                      border: Border.all(color: const Color(0xFFE2E8F0), width: 2),
+                      color: isDark ? theme.colorScheme.surface : const Color(0xFFF1F5F9),
+                      border: Border.all(color: theme.dividerColor, width: 2),
                     ),
-                    child: const Icon(Icons.person, size: 64, color: Color(0xFF94A3B8)),
+                    child: Icon(Icons.person, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.3)),
                   ),
                   Positioned(
                     bottom: 0,
                     right: 0,
                     child: Container(
                       padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFF0284C7),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary,
                         shape: BoxShape.circle,
+                        border: Border.all(color: theme.colorScheme.surface, width: 2),
                       ),
                       child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
                     ),
@@ -127,17 +132,19 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
               ),
             ),
             const SizedBox(height: 40),
-            _buildLabel("Full Name"),
+            _buildLabel("Full Name", theme),
             TextField(
               controller: _nameController,
-              decoration: _inputDecoration("Enter your full name"),
+              style: TextStyle(color: theme.colorScheme.onSurface),
+              decoration: _inputDecoration("Enter your full name", theme),
             ),
             const SizedBox(height: 20),
-            _buildLabel("Email Address"),
+            _buildLabel("Email Address", theme),
             TextField(
               controller: _emailController,
               keyboardType: TextInputType.emailAddress,
-              decoration: _inputDecoration("Enter your email"),
+              style: TextStyle(color: theme.colorScheme.onSurface),
+              decoration: _inputDecoration("Enter your email", theme),
             ),
             const SizedBox(height: 20),
             
@@ -149,26 +156,28 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel("Date of Birth"),
+                      _buildLabel("Date of Birth", theme),
                       InkWell(
                         onTap: () => _selectDate(context),
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF8FAFC),
+                            color: isDark ? theme.colorScheme.surface : const Color(0xFFF8FAFC),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            border: Border.all(color: theme.dividerColor),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.calendar_today, size: 18, color: Color(0xFF64748B)),
+                              Icon(Icons.calendar_today, size: 18, color: theme.colorScheme.primary),
                               const SizedBox(width: 12),
                               Text(
                                 _selectedDate == null 
                                     ? "Select DOB" 
                                     : DateFormat('MMM d, yyyy').format(_selectedDate!),
                                 style: TextStyle(
-                                  color: _selectedDate == null ? const Color(0xFF94A3B8) : const Color(0xFF0F172A),
+                                  color: _selectedDate == null 
+                                    ? theme.colorScheme.onSurface.withOpacity(0.4) 
+                                    : theme.colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -184,21 +193,21 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _buildLabel("Age"),
+                      _buildLabel("Age", theme),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
+                          color: isDark ? theme.colorScheme.surface.withOpacity(0.5) : const Color(0xFFF1F5F9),
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: Border.all(color: theme.dividerColor),
                         ),
                         child: Text(
                           _age == null ? "--" : _age.toString(),
                           textAlign: TextAlign.center,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Color(0xFF0F172A),
+                            color: theme.colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -211,15 +220,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: _handleUpdate,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF0284C7),
-                foregroundColor: Colors.white,
-                minimumSize: const Size(double.infinity, 52),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                elevation: 0,
-              ),
               child: const Text(
                 "Save Changes",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
@@ -231,28 +231,30 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     );
   }
 
-  Widget _buildLabel(String text) {
+  Widget _buildLabel(String text, ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         text,
-        style: const TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF334155)),
+        style: TextStyle(fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface.withOpacity(0.8)),
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
+  InputDecoration _inputDecoration(String hint, ThemeData theme) {
+    bool isDark = theme.brightness == Brightness.dark;
     return InputDecoration(
       hintText: hint,
+      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
       filled: true,
-      fillColor: const Color(0xFFF8FAFC),
+      fillColor: isDark ? theme.colorScheme.surface : const Color(0xFFF8FAFC),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: BorderSide(color: theme.dividerColor),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+        borderSide: BorderSide(color: theme.dividerColor),
       ),
     );
   }

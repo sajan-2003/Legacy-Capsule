@@ -1,7 +1,23 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:video_player/video_player.dart';
+import '../models/memory.dart';
+import '../services/storage_service.dart';
+import 'memory_detail_screen.dart';
 
 class CommunityScreen extends StatefulWidget {
-  const CommunityScreen({super.key});
+  final bool isSearching;
+  final TextEditingController searchController;
+  final Function(bool) onThemeChanged;
+
+  const CommunityScreen({
+    super.key,
+    required this.isSearching,
+    required this.searchController,
+    required this.onThemeChanged,
+  });
 
   @override
   State<CommunityScreen> createState() => _CommunityScreenState();
@@ -9,11 +25,23 @@ class CommunityScreen extends StatefulWidget {
 
 class _CommunityScreenState extends State<CommunityScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  final ImagePicker _picker = ImagePicker();
+  bool _headerSearching = false;
+  DateTime? _selectedSearchDate;
+  final StorageService _storageService = StorageService();
+  late Stream<List<Memory>> _postsStream;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _postsStream = _storageService.getCommunityPosts();
+    
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {});
+      }
+    });
   }
 
   @override
@@ -22,73 +50,75 @@ class _CommunityScreenState extends State<CommunityScreen> with SingleTickerProv
     super.dispose();
   }
 
-  void _openChat(String name) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatDetailScreen(userName: name),
-      ),
-    );
-  }
-
-  void _showSyncOverlay(String title, Color color, IconData icon) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(32),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: color, size: 32),
-            ),
-            const SizedBox(height: 24),
-            Text(
-              "Syncing with $title",
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF0F172A)),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              "We are finding your friends who are also on Legacy Capsule. This won't take long.",
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Color(0xFF64748B), height: 1.5),
-            ),
-            const SizedBox(height: 32),
-            const CircularProgressIndicator(strokeWidth: 3, valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0284C7))),
-            const SizedBox(height: 32),
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text("Cancel", style: TextStyle(color: Color(0xFF94A3B8))),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _openCamera() async {
+    try {
+      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
+      if (photo != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Photo captured: ${photo.name}')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error accessing camera: $e')),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
-        title: const Text(
-          "Community",
-          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
-        ),
+        title: _headerSearching 
+          ? TextField(
+              controller: widget.searchController,
+              autofocus: true,
+              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: "Search community...",
+                hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                border: InputBorder.none,
+              ),
+              onChanged: (val) => setState(() {}),
+            )
+          : Text(
+              "Community",
+              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+            ),
+        actions: [
+          IconButton(
+            icon: Icon(_headerSearching ? Icons.close : Icons.search, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+            onPressed: () => setState(() {
+              _headerSearching = !_headerSearching;
+              if (!_headerSearching) {
+                widget.searchController.clear();
+                _selectedSearchDate = null;
+              }
+            }),
+          ),
+          IconButton(
+            icon: Icon(isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round, color: isDark ? Colors.amber : Colors.blueGrey),
+            onPressed: () => widget.onThemeChanged(!isDark),
+          ),
+          IconButton(
+            icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+            onPressed: _openCamera,
+          ),
+          const SizedBox(width: 8),
+        ],
         bottom: TabBar(
           controller: _tabController,
-          labelColor: const Color(0xFF0284C7),
-          unselectedLabelColor: const Color(0xFF64748B),
-          indicatorColor: const Color(0xFF0284C7),
+          labelColor: theme.colorScheme.primary,
+          unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          indicatorColor: theme.colorScheme.primary,
           tabs: const [
             Tab(text: "Feed"),
             Tab(text: "Friends"),
@@ -99,281 +129,364 @@ class _CommunityScreenState extends State<CommunityScreen> with SingleTickerProv
       body: TabBarView(
         controller: _tabController,
         children: [
-          _buildFeedTab(),
-          _buildFriendsTab(),
-          _buildGroupsTab(),
+          _FeedTab(postsStream: _postsStream, storageService: _storageService, searchController: widget.searchController),
+          const _FriendsTab(),
+          const _GroupsTab(),
         ],
       ),
     );
   }
+}
 
-  Widget _buildFeedTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: 5,
-      itemBuilder: (context, index) {
-        return _buildPostCard();
-      },
-    );
-  }
+class _FeedTab extends StatefulWidget {
+  final Stream<List<Memory>> postsStream;
+  final StorageService storageService;
+  final TextEditingController searchController;
 
-  Widget _buildPostCard() {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ListTile(
-            leading: const CircleAvatar(
-              backgroundColor: Color(0xFFE0F2FE),
-              child: Icon(Icons.person, color: Color(0xFF0284C7)),
-            ),
-            title: const Text("Sarah Johnson", style: TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: const Text("Shared a memory • 2h ago"),
-            trailing: IconButton(icon: const Icon(Icons.more_horiz), onPressed: () {}),
-          ),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Text(
-              "Found this old photo from our 2022 hiking trip. Such great times! 🌲✨",
-              style: TextStyle(color: Color(0xFF334155)),
-            ),
-          ),
-          Container(
-            height: 200,
-            margin: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(12),
-              image: const DecorationImage(
-                image: NetworkImage("https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800&q=80"),
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                const Icon(Icons.favorite_border, size: 20, color: Color(0xFF64748B)),
-                const SizedBox(width: 4),
-                const Text("24", style: TextStyle(color: Color(0xFF64748B))),
-                const SizedBox(width: 16),
-                const Icon(Icons.chat_bubble_outline, size: 20, color: Color(0xFF64748B)),
-                const SizedBox(width: 4),
-                const Text("8", style: TextStyle(color: Color(0xFF64748B))),
-                const Spacer(),
-                const Icon(Icons.share_outlined, size: 20, color: Color(0xFF64748B)),
-              ],
-            ),
-          ),
-        ],
+  const _FeedTab({required this.postsStream, required this.storageService, required this.searchController});
+
+  @override
+  State<_FeedTab> createState() => _FeedTabState();
+}
+
+class _FeedTabState extends State<_FeedTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    final theme = Theme.of(context);
+    return RepaintBoundary(
+      child: StreamBuilder<List<Memory>>(
+        stream: widget.postsStream,
+        initialData: widget.storageService.getCachedCommunityPosts(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          
+          final posts = snapshot.data ?? [];
+          if (posts.isEmpty) {
+            return Center(child: Text("No posts yet. Be the first to share!", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))));
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            itemCount: posts.length,
+            itemBuilder: (context, index) {
+              final memory = posts[index];
+              final query = widget.searchController.text.toLowerCase();
+              if (query.isNotEmpty && !memory.title.toLowerCase().contains(query)) {
+                return const SizedBox.shrink();
+              }
+              return _PostCard(
+                key: ValueKey(memory.id),
+                memory: memory,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => MemoryDetailScreen(
+                        memory: memory,
+                        isCommunityPost: true,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        }
       ),
     );
   }
+}
 
-  Widget _buildFriendsTab() {
-    return Column(
-      children: [
-        // SYNC OPTIONS
-        Padding(
-          padding: const EdgeInsets.only(left: 16, right: 16, top: 16),
-          child: Row(
+class _PostCard extends StatelessWidget {
+  final Memory memory;
+  final VoidCallback onTap;
+  const _PostCard({super.key, required this.memory, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final dateFormat = DateFormat('MMM d, yyyy');
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.1) : const Color(0xFFF1F5F9)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _buildSyncButton(
-                  label: "Sync Contacts",
-                  icon: Icons.contact_phone_outlined,
-                  color: const Color(0xFF059669),
-                  onTap: () => _showSyncOverlay("Contacts", const Color(0xFF059669), Icons.contact_phone),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildSyncButton(
-                  label: "Facebook",
-                  icon: Icons.facebook,
-                  color: const Color(0xFF1877F2),
-                  onTap: () => _showSyncOverlay("Facebook", const Color(0xFF1877F2), Icons.facebook),
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 16,
+                          backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                          child: Icon(Icons.person, color: theme.colorScheme.primary, size: 16),
+                        ),
+                        const SizedBox(width: 12),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(memory.authorName ?? "Legacy User", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+                            Text(
+                              dateFormat.format(memory.date),
+                              style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 12),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (memory.imageUrl != null && (memory.type == MemoryType.photo || memory.type == MemoryType.video)) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: memory.type == MemoryType.photo 
+                          ? (memory.imageUrl!.startsWith('http') 
+                              ? Image.network(
+                                  memory.imageUrl!,
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 200,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                                    child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                                  ),
+                                )
+                              : Image.file(
+                                  File(memory.imageUrl!),
+                                  width: double.infinity,
+                                  height: 200,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    height: 200,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                                    child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                                  ),
+                                ))
+                          : _CommunityVideoPreview(videoPath: memory.imageUrl!),
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                    Text(
+                      memory.title,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    if (memory.content.isNotEmpty)
+                      Text(
+                        memory.content,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                          height: 1.5,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
                 ),
               ),
             ],
           ),
         ),
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: TextField(
-            decoration: InputDecoration(
-              hintText: "Search for friends...",
-              prefixIcon: const Icon(Icons.search),
-              filled: true,
-              fillColor: Colors.white,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: 10,
-            itemBuilder: (context, index) {
-              final friendName = "Friend ${index + 1}";
-              return ListTile(
-                leading: const CircleAvatar(backgroundColor: Color(0xFFF1F5F9), child: Icon(Icons.person, color: Color(0xFF94A3B8))),
-                title: Text(friendName),
-                subtitle: const Text("Mutual connections: 3"),
-                trailing: SizedBox(
-                  width: 140,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.chat_bubble_outline, color: Color(0xFF0284C7)),
-                        onPressed: () => _openChat(friendName),
-                      ),
-                      const SizedBox(width: 4),
-                      ElevatedButton(
-                        onPressed: () {},
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0284C7),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          minimumSize: const Size(0, 32),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                        ),
-                        child: const Text("Follow", style: TextStyle(fontSize: 12)),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSyncButton({required String label, required IconData icon, required Color color, required VoidCallback onTap}) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 8),
-            Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 13)),
-          ],
-        ),
       ),
-    );
-  }
-
-  Widget _buildGroupsTab() {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: ElevatedButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.add),
-            label: const Text("Create New Group"),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: const Color(0xFF0284C7),
-              minimumSize: const Size(double.infinity, 50),
-              side: const BorderSide(color: Color(0xFF0284C7)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
-        ),
-        Expanded(
-          child: ListView.builder(
-            itemCount: 5,
-            itemBuilder: (context, index) {
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: ListTile(
-                  leading: Container(
-                    width: 50,
-                    height: 50,
-                    decoration: BoxDecoration(color: const Color(0xFFE0F2FE), borderRadius: BorderRadius.circular(12)),
-                    child: const Icon(Icons.groups_outlined, color: Color(0xFF0284C7)),
-                  ),
-                  title: Text("Group ${index + 1}"),
-                  subtitle: const Text("12 members • 3 new memories"),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {},
-                ),
-              );
-            },
-          ),
-        ),
-      ],
     );
   }
 }
 
-class ChatDetailScreen extends StatelessWidget {
-  final String userName;
-  const ChatDetailScreen({super.key, required this.userName});
+class _FriendsTab extends StatefulWidget {
+  const _FriendsTab();
+
+  @override
+  State<_FriendsTab> createState() => _FriendsTabState();
+}
+
+class _FriendsTabState extends State<_FriendsTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(userName),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 1,
-      ),
-      body: Column(
-        children: [
-          Expanded(child: ListView()),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFE2E8F0)))),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: "Type a message...",
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                const CircleAvatar(
-                  backgroundColor: Color(0xFF0284C7),
-                  child: Icon(Icons.send, color: Colors.white, size: 20),
-                ),
-              ],
+    super.build(context);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      itemCount: 5,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.1) : const Color(0xFFF1F5F9)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            leading: CircleAvatar(
+              radius: 20,
+              backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+              child: Text("F${index + 1}", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+            ),
+            title: Text("Friend ${index + 1}", style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text("Online", style: TextStyle(color: Colors.green.shade400, fontSize: 12)),
+            trailing: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary.withValues(alpha: 0.05),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.chat_bubble_outline, size: 18, color: theme.colorScheme.primary),
             ),
           ),
-        ],
+        );
+      },
+    );
+  }
+}
+
+class _GroupsTab extends StatefulWidget {
+  const _GroupsTab();
+
+  @override
+  State<_GroupsTab> createState() => _GroupsTabState();
+}
+
+class _GroupsTabState extends State<_GroupsTab> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    return const Center(child: Text("Groups coming soon"));
+  }
+}
+
+class _CommunityVideoPreview extends StatefulWidget {
+  final String videoPath;
+  const _CommunityVideoPreview({required this.videoPath});
+
+  @override
+  State<_CommunityVideoPreview> createState() => _CommunityVideoPreviewState();
+}
+
+class _CommunityVideoPreviewState extends State<_CommunityVideoPreview> {
+  late VideoPlayerController _controller;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = widget.videoPath.startsWith('http')
+        ? VideoPlayerController.networkUrl(Uri.parse(widget.videoPath))
+        : VideoPlayerController.file(File(widget.videoPath));
+
+    _controller.initialize().then((_) {
+      _controller.setLooping(true);
+      _controller.setVolume(0); 
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _handleHover(bool isHovering) {
+    if (!_controller.value.isInitialized) return;
+    setState(() {
+      _isHovered = isHovering;
+    });
+    if (isHovering) {
+      _controller.play();
+    } else {
+      _controller.pause();
+      _controller.seekTo(Duration.zero);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_controller.value.isInitialized) {
+      return Container(
+        height: 200,
+        width: double.infinity,
+        color: Colors.black12,
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+    return MouseRegion(
+      onEnter: (_) => _handleHover(true),
+      onExit: (_) => _handleHover(false),
+      child: GestureDetector(
+        onTapDown: (_) => _handleHover(true),
+        onTapUp: (_) => _handleHover(false),
+        onTapCancel: () => _handleHover(false),
+        child: Container(
+          width: double.infinity,
+          height: 200, 
+          color: Colors.black.withOpacity(0.05),
+          child: ClipRect(
+            child: FittedBox(
+              fit: BoxFit.cover,
+              clipBehavior: Clip.hardEdge,
+              child: SizedBox(
+                width: _controller.value.size.width,
+                height: _controller.value.size.height,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    VideoPlayer(_controller),
+                    if (!_isHovered)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.play_arrow, color: Colors.white, size: 32),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

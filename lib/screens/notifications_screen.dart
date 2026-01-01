@@ -85,30 +85,33 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: theme.colorScheme.surface,
         elevation: 0,
-        title: const Text(
+        title: Text(
           "Notifications",
-          style: TextStyle(color: Color(0xFF0F172A), fontWeight: FontWeight.bold),
+          style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
           if (_notifications.any((n) => n.isUnread))
             TextButton(
               onPressed: _markAllAsRead,
-              child: const Text("Mark all as read", style: TextStyle(fontSize: 12, color: Color(0xFF0284C7))),
+              child: Text("Mark all as read", style: TextStyle(fontSize: 12, color: theme.colorScheme.primary)),
             ),
         ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+          child: Container(color: theme.dividerColor, height: 1),
         ),
       ),
       body: _notifications.isEmpty
-          ? _buildEmptyState()
+          ? _buildEmptyState(theme)
           : ListView.builder(
               padding: const EdgeInsets.all(24),
               itemCount: _notifications.length,
@@ -124,12 +127,12 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                       alignment: Alignment.centerRight,
                       padding: const EdgeInsets.only(right: 20),
                       decoration: BoxDecoration(
-                        color: Colors.red[50],
+                        color: Colors.red.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Icon(Icons.delete_outline, color: Colors.red[400]),
+                      child: const Icon(Icons.delete_outline, color: Colors.redAccent),
                     ),
-                    child: _buildNotificationItem(notification, index),
+                    child: _buildNotificationItem(notification, index, theme),
                   ),
                 );
               },
@@ -137,40 +140,50 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(ThemeData theme) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.notifications_none_outlined, size: 64, color: Colors.grey[300]),
+          Icon(Icons.notifications_none_outlined, size: 64, color: theme.colorScheme.onSurface.withOpacity(0.1)),
           const SizedBox(height: 16),
-          const Text(
+          Text(
             "All caught up!",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF475569)),
+            style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
+          Text(
             "No new notifications for you.",
-            style: TextStyle(color: Color(0xFF94A3B8)),
+            style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNotificationItem(NotificationModel notification, int index) {
+  Widget _buildNotificationItem(NotificationModel notification, int index, ThemeData theme) {
+    final isDark = theme.brightness == Brightness.dark;
+    
+    // Adapt notification icon colors for dark mode visibility
+    final iconBgColor = isDark ? notification.iconColor.withOpacity(0.15) : notification.bgColor;
+    final iconColor = isDark ? notification.iconColor.withOpacity(0.9) : notification.iconColor;
+
     return InkWell(
       onTap: () => _markAsRead(index),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: theme.colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: notification.isUnread ? const Color(0xFFBAE6FD) : const Color(0xFFF1F5F9)),
+          border: Border.all(
+            color: notification.isUnread 
+              ? theme.colorScheme.primary.withOpacity(0.4) 
+              : (isDark ? theme.dividerColor : const Color(0xFFF1F5F9))
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
+              color: Colors.black.withOpacity(isDark ? 0.2 : 0.02),
               blurRadius: 10,
               offset: const Offset(0, 4),
             )
@@ -182,10 +195,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: notification.bgColor,
+                color: iconBgColor,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(notification.icon, color: notification.iconColor, size: 24),
+              child: Icon(notification.icon, color: iconColor, size: 24),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -197,18 +210,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     children: [
                       Text(
                         notification.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color:  Color(0xFF0F172A),
-                          fontSize: 15,
-                        ),
+                        style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                       ),
                       if (notification.isUnread)
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF0284C7),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -217,7 +226,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   const SizedBox(height: 4),
                   Text(
                     notification.message,
-                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 13, height: 1.4),
+                    style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.7), fontSize: 13, height: 1.4),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -225,10 +234,11 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     children: [
                       Text(
                         notification.time,
-                        style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 11),
                       ),
                       PopupMenuButton<String>(
-                        icon: const Icon(Icons.more_horiz, size: 18, color: Color(0xFF94A3B8)),
+                        icon: Icon(Icons.more_horiz, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.3)),
+                        color: theme.colorScheme.surface,
                         padding: EdgeInsets.zero,
                         constraints: const BoxConstraints(minWidth: 120),
                         onSelected: (value) {
@@ -237,23 +247,23 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                         },
                         itemBuilder: (context) => [
                           if (notification.isUnread)
-                            const PopupMenuItem(
+                            PopupMenuItem(
                               value: 'read',
                               child: Row(
                                 children: [
-                                  Icon(Icons.done, size: 18),
-                                  SizedBox(width: 8),
-                                  Text("Mark as read", style: TextStyle(fontSize: 13)),
+                                  const Icon(Icons.done, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text("Mark as read", style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface)),
                                 ],
                               ),
                             ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 'delete',
                             child: Row(
                               children: [
-                                Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                                SizedBox(width: 8),
-                                Text("Delete", style: TextStyle(fontSize: 13, color: Colors.red)),
+                                const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                                const SizedBox(width: 8),
+                                Text("Delete", style: const TextStyle(fontSize: 13, color: Colors.red)),
                               ],
                             ),
                           ),
