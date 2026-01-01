@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 import '../models/memory.dart';
 import '../services/storage_service.dart';
 import 'add_memory_screen.dart';
@@ -49,10 +50,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _loadMemories() async {
-    final memories = _storageService.getLocalMemories();
-    setState(() {
-      _memories = memories;
-    });
+    try {
+      final memories = _storageService.getLocalMemories();
+      setState(() {
+        _memories = memories;
+      });
+    } catch (e) {
+      debugPrint("Error loading memories: $e");
+    }
   }
 
   @override
@@ -84,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         preview: m.preview,
         type: m.type,
         content: m.content,
-        imageUrl: m.imageUrl,
+        imageUrls: m.imageUrls,
         isLocked: !m.isLocked,
         reactionCount: m.reactionCount,
         comments: m.comments,
@@ -104,10 +109,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           title: "Camera Capture",
           preview: "Photo taken on ${DateFormat('MMM d').format(DateTime.now())}",
           type: MemoryType.photo,
-          content: "Captured via camera.",
-          imageUrl: photo.path,
+          content: "",
+          imageUrls: [photo.path],
         );
-        _addMemory(newMemory);
+        
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AddMemoryScreen(
+              onSave: _addMemory,
+              initialMemory: newMemory,
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -179,7 +193,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             },
             backgroundColor: theme.colorScheme.surface,
             selectedItemColor: theme.colorScheme.primary,
-            unselectedItemColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            unselectedItemColor: theme.colorScheme.onSurface.withOpacity(0.4),
             showSelectedLabels: true,
             showUnselectedLabels: true,
             type: BottomNavigationBarType.fixed,
@@ -247,11 +261,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Journal", style: theme.textTheme.titleLarge?.copyWith(fontSize: 24)),
+              Text("Journal", style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, fontWeight: FontWeight.bold)),
               Row(
                 children: [
                   IconButton(
-                    icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                    icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.onSurface.withOpacity(0.6)),
                     onPressed: _openCamera,
                   ),
                   GestureDetector(
@@ -266,46 +280,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                       );
                     },
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                      child: Icon(Icons.person, color: theme.colorScheme.primary, size: 20),
+                    child: Hero(
+                      tag: 'profile_avatar',
+                      child: CircleAvatar(
+                        radius: 18,
+                        backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                        child: Icon(Icons.person, color: theme.colorScheme.primary, size: 20),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 4),
-                  PopupMenuButton<String>(
-                    icon: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.more_vert,
-                        color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.7) : const Color(0xFF64748B),
-                        size: 20,
-                      ),
-                    ),
-                    padding: EdgeInsets.zero,
-                    color: theme.colorScheme.surface,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    onSelected: (value) {
-                      if (value == 'theme') widget.onThemeChanged(!isDark);
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'theme',
-                        child: Row(
-                          children: [
-                            Icon(isDark ? Icons.wb_sunny_rounded : Icons.nightlight_round, size: 20, color: isDark ? Colors.amber : const Color(0xFF475569)),
-                            const SizedBox(width: 12),
-                            Text(isDark ? "Day Mode" : "Night Mode", style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
                 ],
               ),
             ],
@@ -318,7 +302,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: TabBar(
             controller: _tabController,
             labelColor: theme.colorScheme.primary,
-            unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+            unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.4),
             indicatorColor: theme.colorScheme.primary,
             indicatorWeight: 3,
             tabs: const [
@@ -343,46 +327,58 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildMemoriesTab(ThemeData theme, bool isDark) {
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-      children: [
-        _buildBodyActionBar(theme, isDark),
-        const SizedBox(height: 16),
-        if (_memories.isEmpty)
-          _buildEmptyState()
-        else
-          ..._memories.where((memory) {
-            bool matchesTitle = memory.title.toLowerCase().contains(_searchController.text.toLowerCase());
-            bool matchesDate = _selectedSearchDate == null || 
-                (memory.date.year == _selectedSearchDate!.year && 
-                 memory.date.month == _selectedSearchDate!.month && 
-                 memory.date.day == _selectedSearchDate!.day);
-            return !(_isSearching && !(matchesTitle && matchesDate));
-          }).map((memory) => MemoryCard(
-            memory: memory,
-            onDelete: () => _deleteMemory(memory.id),
-            onToggleLock: () => _toggleLock(memory.id),
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => MemoryDetailScreen(
-                    memory: memory,
-                    onDelete: _deleteMemory,
-                    onToggleLock: _toggleLock,
+    return RefreshIndicator(
+      onRefresh: _loadMemories,
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        physics: const AlwaysScrollableScrollPhysics(),
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        children: [
+          _buildBodyActionBar(theme, isDark),
+          const SizedBox(height: 16),
+          if (_memories.isEmpty)
+            _buildEmptyState()
+          else
+            ..._memories.where((memory) {
+              final query = _searchController.text.toLowerCase();
+              bool matchesTitle = memory.title.toLowerCase().contains(query);
+              bool matchesDate = _selectedSearchDate == null || 
+                  (memory.date.year == _selectedSearchDate!.year && 
+                   memory.date.month == _selectedSearchDate!.month && 
+                   memory.date.day == _selectedSearchDate!.day);
+              
+              if (_isSearching) {
+                if (_selectedSearchDate != null) return matchesDate;
+                return matchesTitle;
+              }
+              return true;
+            }).map((memory) => MemoryCard(
+              key: ValueKey(memory.id),
+              memory: memory,
+              onDelete: () => _deleteMemory(memory.id),
+              onToggleLock: () => _toggleLock(memory.id),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => MemoryDetailScreen(
+                      memory: memory,
+                      onDelete: _deleteMemory,
+                      onToggleLock: _toggleLock,
+                    ),
                   ),
-                ),
-              );
-            },
-          )),
-      ],
+                );
+              },
+            )),
+        ],
+      ),
     );
   }
 
   Widget _buildFuturePlansTab(ThemeData theme, bool isDark) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -395,7 +391,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               border: Border.all(color: theme.dividerColor),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                  color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 )
@@ -439,7 +435,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: isDark ? theme.dividerColor : const Color(0xFFFEF08A)),
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))
+                BoxShadow(color: Colors.black.withOpacity(isDark ? 0.1 : 0.02), blurRadius: 10, offset: const Offset(0, 4))
               ],
             ),
             child: TextField(
@@ -453,7 +449,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               ),
               decoration: InputDecoration(
                 hintText: "Start typing your plans or thoughts...",
-                hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.3)),
                 border: InputBorder.none,
               ),
             ),
@@ -469,15 +465,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       children: [
         Expanded(
           child: Container(
-            height: 48, // Increased height for a bigger bar
+            height: 48,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
               color: theme.colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: theme.dividerColor.withValues(alpha: 0.5)),
+              border: Border.all(color: theme.dividerColor.withOpacity(0.5)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.1 : 0.02),
+                  color: Colors.black.withOpacity(isDark ? 0.1 : 0.02),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 )
@@ -485,18 +481,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
             child: Row(
               children: [
-                Icon(Icons.search, size: 20, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                Icon(Icons.search, size: 20, color: theme.colorScheme.onSurface.withOpacity(0.4)),
                 const SizedBox(width: 12),
                 Expanded(
                   child: TextField(
                     controller: _searchController,
+                    textAlignVertical: TextAlignVertical.center,
                     style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 14),
                     decoration: InputDecoration(
                       hintText: "Search memories...",
-                      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
                       border: InputBorder.none,
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 8),
                       suffixIcon: _selectedSearchDate != null 
                         ? IconButton(
                             icon: const Icon(Icons.close, size: 16), 
@@ -545,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               child: Icon(
                 Icons.description_outlined,
                 size: 40,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.3),
+                color: theme.colorScheme.onSurface.withOpacity(0.3),
               ),
             ),
             const SizedBox(height: 20),
@@ -553,7 +549,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               "Your story starts here.",
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                color: theme.colorScheme.onSurface.withOpacity(0.7),
               ),
             ),
           ],
@@ -599,33 +595,33 @@ class MemoryCard extends StatelessWidget {
         break;
     }
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.1) : const Color(0xFFF1F5F9)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? theme.colorScheme.onSurface.withOpacity(0.1) : const Color(0xFFF1F5F9)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GestureDetector(
+                    onTap: onTap,
+                    child: Row(
                       children: [
                         Text(
                           dateFormat.format(memory.date),
@@ -636,7 +632,7 @@ class MemoryCard extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        Icon(typeIcon, size: 18, color: theme.colorScheme.onSurface.withValues(alpha: 0.5)),
+                        Icon(typeIcon, size: 18, color: theme.colorScheme.onSurface.withOpacity(0.5)),
                         if (memory.isLocked) ...[
                           const SizedBox(width: 8),
                           const Icon(Icons.lock, size: 18, color: Color(0xFFB45309)),
@@ -647,10 +643,10 @@ class MemoryCard extends StatelessWidget {
                           icon: Container(
                             padding: const EdgeInsets.all(6),
                             decoration: BoxDecoration(
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.05),
+                              color: theme.colorScheme.onSurface.withOpacity(0.05),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(Icons.more_vert, size: 20, color: theme.colorScheme.onSurface.withValues(alpha: 0.7)),
+                            child: Icon(Icons.more_vert, size: 20, color: theme.colorScheme.onSurface.withOpacity(0.7)),
                           ),
                           color: theme.colorScheme.surface,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -683,66 +679,172 @@ class MemoryCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    if (memory.imageUrl != null && (memory.type == MemoryType.photo || memory.type == MemoryType.video)) ...[
-                      ClipRRect(
+                  ),
+                  const SizedBox(height: 4),
+                  if (memory.imageUrls.isNotEmpty && (memory.type == MemoryType.photo || memory.type == MemoryType.video)) ...[
+                    Hero(
+                      tag: 'memory_media_${memory.id}',
+                      child: ClipRRect(
                         borderRadius: BorderRadius.circular(16),
                         child: memory.type == MemoryType.photo 
-                          ? (memory.imageUrl!.startsWith('http') 
-                              ? Image.network(
-                                  memory.imageUrl!,
-                                  width: double.infinity,
-                                  height: 200, // Uniform height
-                                  fit: BoxFit.cover, // Crop to fit
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    height: 200,
-                                    color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
-                                    child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
-                                  ),
-                                )
-                              : Image.file(
-                                  File(memory.imageUrl!),
-                                  width: double.infinity,
-                                  height: 200, // Uniform height
-                                  fit: BoxFit.cover, // Crop to fit
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    height: 200,
-                                    color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
-                                    child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
-                                  ),
-                                ))
-                          : VideoGifPreview(videoPath: memory.imageUrl!),
+                          ? GestureDetector(
+                              onTap: onTap,
+                              child: _buildCollage(memory.imageUrls, theme, isDark),
+                            )
+                          : VideoGifPreview(
+                              videoPath: memory.imageUrls.first,
+                              onTap: onTap,
+                            ),
                       ),
-                      const SizedBox(height: 12),
-                    ],
-                    Text(
-                      memory.title,
-                      style: theme.textTheme.titleLarge?.copyWith(fontSize: 18),
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      memory.preview,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                        height: 1.5,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    const SizedBox(height: 12),
                   ],
-                ),
+                  GestureDetector(
+                    onTap: onTap,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          memory.title,
+                          style: theme.textTheme.titleLarge?.copyWith(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          memory.preview,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.7),
+                            height: 1.5,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  Widget _buildCollage(List<String> urls, ThemeData theme, bool isDark) {
+    if (urls.isEmpty) return const SizedBox.shrink();
+    if (urls.length == 1) return _buildSingleImage(urls.first, theme, isDark, height: 200);
+
+    return SizedBox(
+      height: 240,
+      child: urls.length == 2 
+        ? Row(
+            children: [
+              Expanded(child: _buildSingleImage(urls[0], theme, isDark)),
+              const SizedBox(width: 2),
+              Expanded(child: _buildSingleImage(urls[1], theme, isDark)),
+            ],
+          )
+        : urls.length == 3
+          ? Row(
+              children: [
+                Expanded(flex: 2, child: _buildSingleImage(urls[0], theme, isDark)),
+                const SizedBox(width: 2),
+                Expanded(
+                  child: Column(
+                    children: [
+                      Expanded(child: _buildSingleImage(urls[1], theme, isDark)),
+                      const SizedBox(height: 2),
+                      Expanded(child: _buildSingleImage(urls[2], theme, isDark)),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : urls.length == 4
+            ? Column(
+                children: [
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSingleImage(urls[0], theme, isDark)),
+                        const SizedBox(width: 2),
+                        Expanded(child: _buildSingleImage(urls[1], theme, isDark)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSingleImage(urls[2], theme, isDark)),
+                        const SizedBox(width: 2),
+                        Expanded(child: _buildSingleImage(urls[3], theme, isDark)),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : Column(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSingleImage(urls[0], theme, isDark)),
+                        const SizedBox(width: 2),
+                        Expanded(child: _buildSingleImage(urls[1], theme, isDark)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Expanded(
+                    flex: 2,
+                    child: Row(
+                      children: [
+                        Expanded(child: _buildSingleImage(urls[2], theme, isDark)),
+                        const SizedBox(width: 2),
+                        Expanded(child: _buildSingleImage(urls[3], theme, isDark)),
+                        const SizedBox(width: 2),
+                        Expanded(child: _buildSingleImage(urls[4], theme, isDark)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+    );
+  }
+
+  Widget _buildSingleImage(String url, ThemeData theme, bool isDark, {double? height}) {
+    return url.startsWith('http') 
+        ? Image.network(
+            url,
+            width: double.infinity,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _errorContainer(theme, isDark),
+          )
+        : Image.file(
+            File(url),
+            width: double.infinity,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _errorContainer(theme, isDark),
+          );
+  }
+
+  Widget _errorContainer(ThemeData theme, bool isDark) {
+    return Container(
+      height: double.infinity,
+      color: isDark ? theme.colorScheme.onSurface.withOpacity(0.05) : const Color(0xFFF1F5F9),
+      child: const Center(child: Icon(Icons.broken_image_outlined, color: Colors.grey)),
     );
   }
 }
 
 class VideoGifPreview extends StatefulWidget {
   final String videoPath;
-  const VideoGifPreview({super.key, required this.videoPath});
+  final VoidCallback onTap;
+  const VideoGifPreview({super.key, required this.videoPath, required this.onTap});
 
   @override
   State<VideoGifPreview> createState() => _VideoGifPreviewState();
@@ -750,7 +852,6 @@ class VideoGifPreview extends StatefulWidget {
 
 class _VideoGifPreviewState extends State<VideoGifPreview> {
   late VideoPlayerController _controller;
-  bool _isHovered = false;
 
   @override
   void initState() {
@@ -762,6 +863,7 @@ class _VideoGifPreviewState extends State<VideoGifPreview> {
     _controller.initialize().then((_) {
       _controller.setLooping(true);
       _controller.setVolume(0); 
+      _controller.play();
       if (mounted) setState(() {});
     });
   }
@@ -770,18 +872,6 @@ class _VideoGifPreviewState extends State<VideoGifPreview> {
   void dispose() {
     _controller.dispose();
     super.dispose();
-  }
-
-  void _handleHover(bool isHovering) {
-    setState(() {
-      _isHovered = isHovering;
-    });
-    if (isHovering) {
-      _controller.play();
-    } else {
-      _controller.pause();
-      _controller.seekTo(Duration.zero);
-    }
   }
 
   @override
@@ -794,13 +884,21 @@ class _VideoGifPreviewState extends State<VideoGifPreview> {
         child: const Center(child: CircularProgressIndicator()),
       );
     }
-    return MouseRegion(
-      onEnter: (_) => _handleHover(true),
-      onExit: (_) => _handleHover(false),
+    return VisibilityDetector(
+      key: Key(widget.videoPath),
+      onVisibilityChanged: (visibilityInfo) {
+        if (visibilityInfo.visibleFraction > 0.5) {
+          if (!_controller.value.isPlaying) {
+            _controller.play();
+          }
+        } else {
+          if (_controller.value.isPlaying) {
+            _controller.pause();
+          }
+        }
+      },
       child: GestureDetector(
-        onTapDown: (_) => _handleHover(true),
-        onTapUp: (_) => _handleHover(false),
-        onTapCancel: () => _handleHover(false),
+        onTap: widget.onTap,
         child: Container(
           width: double.infinity,
           height: 200, // Fixed height for uniformity
@@ -812,21 +910,7 @@ class _VideoGifPreviewState extends State<VideoGifPreview> {
               child: SizedBox(
                 width: _controller.value.size.width,
                 height: _controller.value.size.height,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    VideoPlayer(_controller),
-                    if (!_isHovered)
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.play_arrow, color: Colors.white, size: 32),
-                      ),
-                  ],
-                ),
+                child: VideoPlayer(_controller),
               ),
             ),
           ),

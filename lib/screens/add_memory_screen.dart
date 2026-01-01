@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/memory.dart';
@@ -8,64 +7,79 @@ import '../services/storage_service.dart';
 
 class AddMemoryScreen extends StatefulWidget {
   final Function(Memory) onSave;
+  final Memory? initialMemory;
 
-  const AddMemoryScreen({super.key, required this.onSave});
+  const AddMemoryScreen({super.key, required this.onSave, this.initialMemory});
 
   @override
   State<AddMemoryScreen> createState() => _AddMemoryScreenState();
 }
 
 class _AddMemoryScreenState extends State<AddMemoryScreen> {
-  MemoryType _selectedType = MemoryType.text;
-  final TextEditingController _titleController = TextEditingController();
-  final TextEditingController _contentController = TextEditingController();
+  late MemoryType _selectedType;
+  late TextEditingController _titleController;
+  late TextEditingController _contentController;
   final ImagePicker _imagePicker = ImagePicker();
   final StorageService _storageService = StorageService();
 
   bool _isTimeLocked = false;
   bool _shareToCommunity = false;
-  DateTime? _unlockDate;
-  String _lockType = 'date'; 
-  final TextEditingController _ageController = TextEditingController();
   
-  File? _selectedFile;
-  String? _selectedFileName;
+  List<File> _selectedFiles = [];
   bool _isUploading = false;
 
-  Future<void> _pickFile() async {
+  @override
+  void initState() {
+    super.initState();
+    _selectedType = widget.initialMemory?.type ?? MemoryType.text;
+    _titleController = TextEditingController(text: widget.initialMemory?.title ?? "");
+    _contentController = TextEditingController(text: widget.initialMemory?.content ?? "");
+    if (widget.initialMemory != null && widget.initialMemory!.imageUrls.isNotEmpty) {
+      _selectedFiles = widget.initialMemory!.imageUrls.map((path) => File(path)).toList();
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickFiles() async {
     try {
       if (_selectedType == MemoryType.photo) {
-        final XFile? image = await _imagePicker.pickImage(source: ImageSource.gallery);
-        if (image != null) {
+        final List<XFile> images = await _imagePicker.pickMultiImage(
+          limit: 5,
+        );
+        if (images.isNotEmpty) {
           setState(() {
-            _selectedFile = File(image.path);
-            _selectedFileName = image.name;
+            _selectedFiles = images.take(5).map((image) => File(image.path)).toList();
           });
         }
       } else if (_selectedType == MemoryType.video) {
         final XFile? video = await _imagePicker.pickVideo(source: ImageSource.gallery);
         if (video != null) {
           setState(() {
-            _selectedFile = File(video.path);
-            _selectedFileName = video.name;
+            _selectedFiles = [File(video.path)];
           });
         }
       } else {
         FilePickerResult? result = await FilePicker.platform.pickFiles(
           type: _selectedType == MemoryType.audio ? FileType.audio : FileType.any,
+          allowMultiple: false,
         );
 
         if (result != null) {
           setState(() {
-            _selectedFile = File(result.files.single.path!);
-            _selectedFileName = result.files.single.name;
+            _selectedFiles = [File(result.files.single.path!)];
           });
         }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking file: $e')),
+          SnackBar(content: Text('Error picking files: $e')),
         );
       }
     }
@@ -84,24 +98,22 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
 
     try {
       final newMemory = Memory(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: widget.initialMemory?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
         date: DateTime.now(),
         title: title,
         preview: content.isNotEmpty 
             ? (content.length > 100 ? '${content.substring(0, 100)}...' : content)
-            : (_selectedFileName ?? "File attachment"),
+            : (_selectedFiles.isNotEmpty ? "${_selectedFiles.length} files attached" : "Text entry"),
         type: _selectedType,
         content: content,
-        imageUrl: _selectedFile?.path,
+        imageUrls: _selectedFiles.map((f) => f.path).toList(),
         isLocked: _isTimeLocked,
       );
 
-      // 1. Always save to Local Journal (No size limit)
       widget.onSave(newMemory);
 
-      // 2. If shared, send to Firebase (50MB limit check)
       if (_shareToCommunity) {
-        await _storageService.shareToCommunity(newMemory, _selectedFile);
+        await _storageService.shareToCommunity(newMemory, _selectedFiles.isNotEmpty ? _selectedFiles.first : null);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text("Shared to community!")),
@@ -143,7 +155,6 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Memory Type Selection
                       _buildSectionTitle("Memory Type", theme),
                       Row(
                         children: [
@@ -158,13 +169,12 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Title & Content
                       _buildSectionTitle("Title", theme),
                       _buildTextField(_titleController, "Give your memory a title...", theme),
                       const SizedBox(height: 24),
 
                       if (_selectedType != MemoryType.text) ...[
-                        _buildSectionTitle("Attach ${_selectedType.name.capitalize()}", theme),
+                        _buildSectionTitle("Attach ${_capitalize(_selectedType.name)} (Max 5 photos)", theme),
                         _buildFilePicker(theme, isDark),
                         const SizedBox(height: 24),
                       ],
@@ -173,7 +183,6 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
                       _buildTextField(_contentController, "Write about this moment...", theme, maxLines: 5),
                       const SizedBox(height: 32),
 
-                      // SHARING & LOCKING OPTIONS
                       _buildOptionTile(
                         title: "Share to Community",
                         subtitle: "Make this visible to others (Max 50MB)",
@@ -202,6 +211,8 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
           ),
     );
   }
+
+  String _capitalize(String s) => s.isEmpty ? s : "${s[0].toUpperCase()}${s.substring(1)}";
 
   Widget _buildSectionTitle(String title, ThemeData theme) {
     return Padding(
@@ -236,7 +247,7 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
 
   Widget _buildFilePicker(ThemeData theme, bool isDark) {
     return InkWell(
-      onTap: _pickFile,
+      onTap: _pickFiles,
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
@@ -247,18 +258,86 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
         ),
         child: Column(
           children: [
-            if (_selectedFile == null) ...[
+            if (_selectedFiles.isEmpty) ...[
               Icon(Icons.cloud_upload_outlined, size: 32, color: theme.colorScheme.primary),
               const SizedBox(height: 12),
-              Text("Tap to select a ${_selectedType.name} file", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
+              Text("Tap to select ${_selectedType.name} file(s)", style: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.6))),
             ] else ...[
-              const Icon(Icons.check_circle, size: 32, color: Colors.green),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _selectedFiles.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final file = entry.value;
+                  return Stack(
+                    children: [
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          image: _selectedType == MemoryType.photo 
+                              ? DecorationImage(image: FileImage(file), fit: BoxFit.cover)
+                              : null,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        ),
+                        child: _selectedType != MemoryType.photo 
+                            ? const Icon(Icons.insert_drive_file) 
+                            : null,
+                      ),
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              _selectedFiles.removeAt(index);
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: const BoxDecoration(
+                              color: Colors.black54,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.close, size: 16, color: Colors.white),
+                          ),
+                        ),
+                      ),
+                      if (_selectedType == MemoryType.photo)
+                        Positioned(
+                          bottom: 4,
+                          left: 4,
+                          child: GestureDetector(
+                            onTap: () => _editPhoto(index),
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                }).toList(),
+              ),
               const SizedBox(height: 12),
-              Text(_selectedFileName ?? "File selected", style: const TextStyle(fontWeight: FontWeight.bold)),
+              Text("${_selectedFiles.length} file(s) selected", style: const TextStyle(fontWeight: FontWeight.bold)),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _editPhoto(int index) async {
+    // This is a placeholder for actual photo editing logic.
+    // In a real app, you might use a package like 'pro_image_editor' or 'image_editor_plus'.
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Photo editing coming soon! Integrate an editor package for full functionality.")),
     );
   }
 
@@ -278,7 +357,7 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
     bool isSelected = _selectedType == type;
     return Expanded(
       child: GestureDetector(
-        onTap: () => setState(() { _selectedType = type; _selectedFile = null; }),
+        onTap: () => setState(() { _selectedType = type; _selectedFiles = []; }),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
@@ -308,8 +387,4 @@ class _AddMemoryScreenState extends State<AddMemoryScreen> {
       ),
     );
   }
-}
-
-extension StringExtension on String {
-  String capitalize() => "${this[0].toUpperCase()}${substring(1)}";
 }

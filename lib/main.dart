@@ -12,8 +12,9 @@ void main() async {
     // 1. Initialize Local Database (Hive)
     await Hive.initFlutter();
     await Hive.openBox('memories');
-    // Create another box specifically for community data/cache
     await Hive.openBox('community_cache');
+    // Open the user_profile box which was missing
+    await Hive.openBox('user_profile');
 
     // 2. Initialize Cloud Database (Firebase)
     await Firebase.initializeApp();

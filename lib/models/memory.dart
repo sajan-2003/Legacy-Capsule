@@ -35,7 +35,7 @@ class Memory {
   final String preview;
   final MemoryType type;
   final String content;
-  final String? imageUrl;
+  final List<String> imageUrls; // Changed from imageUrl to imageUrls
   final bool isLocked;
   final String? authorId;
   final String? authorName;
@@ -49,13 +49,17 @@ class Memory {
     required this.preview,
     required this.type,
     required this.content,
-    this.imageUrl,
+    List<String>? imageUrls,
     this.isLocked = false,
     this.authorId,
     this.authorName,
     this.reactionCount = 0,
     List<Comment>? comments,
-  }) : comments = comments ?? [];
+  })  : imageUrls = imageUrls ?? [],
+        comments = comments ?? [];
+
+  // Helper for backward compatibility or single image access
+  String? get imageUrl => imageUrls.isNotEmpty ? imageUrls.first : null;
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -64,7 +68,7 @@ class Memory {
     'preview': preview,
     'type': type.name,
     'content': content,
-    'imageUrl': imageUrl,
+    'imageUrls': imageUrls,
     'isLocked': isLocked,
     'authorId': authorId,
     'authorName': authorName,
@@ -79,7 +83,9 @@ class Memory {
     preview: json['preview'],
     type: MemoryType.values.byName(json['type']),
     content: json['content'],
-    imageUrl: json['imageUrl'],
+    imageUrls: json['imageUrls'] != null 
+        ? List<String>.from(json['imageUrls']) 
+        : (json['imageUrl'] != null ? [json['imageUrl'] as String] : []),
     isLocked: json['isLocked'] ?? false,
     authorId: json['authorId'],
     authorName: json['authorName'],

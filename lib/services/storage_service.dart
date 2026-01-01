@@ -4,12 +4,38 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/memory.dart';
+import '../models/user.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StorageService {
   static const String _memoriesBoxName = 'memories';
   static const String _communityCacheBoxName = 'community_cache';
+  static const String _userBoxName = 'user_profile';
   static const int _maxFirebaseSize = 50 * 1024 * 1024; // 50MB in bytes
+
+  // --- User Profile ---
+
+  Future<void> saveUserProfile(UserProfile profile) async {
+    final box = Hive.box(_userBoxName);
+    await box.put('current_user', jsonEncode(profile.toJson()));
+    
+    if (Firebase.apps.isNotEmpty) {
+      try {
+        await FirebaseFirestore.instance.collection('users').doc(profile.uid).set(profile.toJson());
+      } catch (e) {
+        debugPrint("Cloud profile save failed: $e");
+      }
+    }
+  }
+
+  UserProfile? getUserProfile() {
+    final box = Hive.box(_userBoxName);
+    final data = box.get('current_user');
+    if (data != null) {
+      return UserProfile.fromJson(jsonDecode(data));
+    }
+    return null;
+  }
 
   // --- Journal (Local) ---
   

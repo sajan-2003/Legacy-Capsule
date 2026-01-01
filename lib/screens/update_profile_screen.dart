@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../models/user.dart';
+import '../services/storage_service.dart';
 
 class UpdateProfileScreen extends StatefulWidget {
   final String currentName;
@@ -18,6 +20,7 @@ class UpdateProfileScreen extends StatefulWidget {
 class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
+  final StorageService _storageService = StorageService();
   DateTime? _selectedDate;
   int? _age;
 
@@ -26,6 +29,17 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     super.initState();
     _nameController = TextEditingController(text: widget.currentName);
     _emailController = TextEditingController(text: widget.currentEmail);
+    _loadProfile();
+  }
+
+  void _loadProfile() {
+    final profile = _storageService.getUserProfile();
+    if (profile != null) {
+      setState(() {
+        _nameController.text = profile.displayName ?? widget.currentName;
+        _emailController.text = profile.email;
+      });
+    }
   }
 
   @override
@@ -67,11 +81,32 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
     }
   }
 
-  void _handleUpdate() {
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profile updated successfully')),
+  Future<void> _handleUpdate() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+
+    if (name.isEmpty || email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all fields')),
+      );
+      return;
+    }
+
+    final profile = UserProfile(
+      uid: 'current_user_id', // This should come from Auth in a real app
+      email: email,
+      displayName: name,
+      createdAt: DateTime.now(),
     );
+
+    await _storageService.saveUserProfile(profile);
+
+    if (mounted) {
+      Navigator.pop(context, true); // Return true to indicate profile was updated
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Profile updated successfully')),
+      );
+    }
   }
 
   @override
@@ -148,7 +183,6 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             ),
             const SizedBox(height: 20),
             
-            // DOB and Age Row
             Row(
               children: [
                 Expanded(
@@ -220,6 +254,10 @@ class _UpdateProfileScreenState extends State<UpdateProfileScreen> {
             const SizedBox(height: 40),
             ElevatedButton(
               onPressed: _handleUpdate,
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 56),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              ),
               child: const Text(
                 "Save Changes",
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),

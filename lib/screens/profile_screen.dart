@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../models/user.dart';
+import '../services/storage_service.dart';
 import 'front_page.dart';
 import 'security_settings_screen.dart';
 import 'time_lock_screen.dart';
 import 'update_profile_screen.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;
   final ThemeMode currentThemeMode;
 
@@ -15,9 +17,32 @@ class ProfileScreen extends StatelessWidget {
   });
 
   @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final StorageService _storageService = StorageService();
+  UserProfile? _userProfile;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  void _loadUserData() {
+    setState(() {
+      _userProfile = _storageService.getUserProfile();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+
+    final String displayName = _userProfile?.displayName ?? "Legacy User";
+    final String email = _userProfile?.email ?? "User email";
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
@@ -26,7 +51,7 @@ class ProfileScreen extends StatelessWidget {
         elevation: 0,
         leading: IconButton(
           icon: Icon(Icons.arrow_back,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+              color: theme.colorScheme.onSurface.withOpacity(0.6)),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -52,23 +77,26 @@ class ProfileScreen extends StatelessWidget {
                 border: isDark ? Border.all(color: theme.dividerColor) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
                 ],
               ),
               child: InkWell(
-                onTap: () {
-                  Navigator.push(
+                onTap: () async {
+                  final result = await Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => const UpdateProfileScreen(
-                        currentName: "Sarah Johnson",
-                        currentEmail: "sarah.johnson@email.com",
+                      builder: (_) => UpdateProfileScreen(
+                        currentName: displayName,
+                        currentEmail: email,
                       ),
                     ),
                   );
+                  if (result == true) {
+                    _loadUserData();
+                  }
                 },
                 borderRadius: BorderRadius.circular(24),
                 child: Padding(
@@ -90,7 +118,7 @@ class ProfileScreen extends StatelessWidget {
                                     ? [
                                         theme.colorScheme.primary,
                                         theme.colorScheme.primary
-                                            .withValues(alpha: 0.7)
+                                            .withOpacity(0.7)
                                       ]
                                     : [
                                         const Color(0xFF38BDF8),
@@ -120,15 +148,15 @@ class ProfileScreen extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              "Sarah Johnson",
+                              displayName,
                               style: theme.textTheme.titleLarge
                                   ?.copyWith(fontSize: 18),
                             ),
                             Text(
-                              "sarah.johnson@email.com",
+                              email,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.5),
+                                    .withOpacity(0.5),
                               ),
                             ),
                           ],
@@ -136,7 +164,7 @@ class ProfileScreen extends StatelessWidget {
                       ),
                       Icon(Icons.chevron_right,
                           color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.3)),
+                              .withOpacity(0.3)),
                     ],
                   ),
                 ),
@@ -152,7 +180,7 @@ class ProfileScreen extends StatelessWidget {
                 border: isDark ? Border.all(color: theme.dividerColor) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -188,7 +216,7 @@ class ProfileScreen extends StatelessWidget {
                             builder: (_) => TimeLockScreen(
                               isSearching: false,
                               searchController: TextEditingController(),
-                              onThemeChanged: onThemeChanged,
+                              onThemeChanged: widget.onThemeChanged,
                             ),
                           ),
                         );
@@ -201,8 +229,8 @@ class ProfileScreen extends StatelessWidget {
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: isDark
-                              ? Colors.amber.withValues(alpha: 0.1)
-                              : Colors.blueGrey.withValues(alpha: 0.1),
+                              ? Colors.amber.withOpacity(0.1)
+                              : Colors.blueGrey.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -218,16 +246,16 @@ class ProfileScreen extends StatelessWidget {
                         style: TextStyle(
                           fontWeight: FontWeight.w500,
                           color: theme.colorScheme.onSurface
-                              .withValues(alpha: 0.8),
+                              .withOpacity(0.8),
                           fontSize: 15,
                         ),
                       ),
                       trailing: Switch(
                         value: isDark,
                         activeTrackColor:
-                            theme.colorScheme.primary.withValues(alpha: 0.5),
+                            theme.colorScheme.primary.withOpacity(0.5),
                         activeThumbColor: theme.colorScheme.primary,
-                        onChanged: (val) => onThemeChanged(val),
+                        onChanged: (val) => widget.onThemeChanged(val),
                       ),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 20, vertical: 4),
@@ -243,8 +271,8 @@ class ProfileScreen extends StatelessWidget {
                           context,
                           MaterialPageRoute(
                             builder: (_) => SplashScreen(
-                              onThemeChanged: onThemeChanged,
-                              currentThemeMode: currentThemeMode,
+                              onThemeChanged: widget.onThemeChanged,
+                              currentThemeMode: widget.currentThemeMode,
                             ),
                           ),
                           (route) => false,
@@ -266,7 +294,7 @@ class ProfileScreen extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                    color: theme.colorScheme.onSurface.withOpacity(0.4),
                     letterSpacing: 1.2,
                   ),
                 ),
@@ -282,7 +310,7 @@ class ProfileScreen extends StatelessWidget {
                 border: isDark ? Border.all(color: theme.dividerColor) : null,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   )
@@ -295,7 +323,7 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.info_outline_rounded,
                     label: "About Us",
                     color: isDark
-                        ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
+                        ? theme.colorScheme.onSurface.withOpacity(0.6)
                         : const Color(0xFF475569),
                     onTap: () {},
                   ),
@@ -305,7 +333,7 @@ class ProfileScreen extends StatelessWidget {
                     icon: Icons.help_outline_rounded,
                     label: "Help & Support",
                     color: isDark
-                        ? theme.colorScheme.onSurface.withValues(alpha: 0.6)
+                        ? theme.colorScheme.onSurface.withOpacity(0.6)
                         : const Color(0xFF475569),
                     onTap: () {},
                   ),
@@ -332,7 +360,7 @@ class ProfileScreen extends StatelessWidget {
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.1),
+          color: color.withOpacity(0.1),
           borderRadius: BorderRadius.circular(10),
         ),
         child: Icon(icon, color: color, size: 20),
@@ -341,12 +369,12 @@ class ProfileScreen extends StatelessWidget {
         label,
         style: TextStyle(
           fontWeight: FontWeight.w500,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+          color: theme.colorScheme.onSurface.withOpacity(0.8),
           fontSize: 15,
         ),
       ),
       trailing: Icon(Icons.chevron_right,
-          color: theme.colorScheme.onSurface.withValues(alpha: 0.2), size: 18),
+          color: theme.colorScheme.onSurface.withOpacity(0.2), size: 18),
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
     );
   }

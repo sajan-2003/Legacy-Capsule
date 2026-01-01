@@ -28,24 +28,25 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
   final StorageService _storageService = StorageService();
   VideoPlayerController? _videoController;
   late bool _isReacted;
-  bool _isSharing = false;
 
   @override
   void initState() {
     super.initState();
     _isReacted = widget.memory.reactionCount > 0;
-    if (widget.memory.type == MemoryType.video && widget.memory.imageUrl != null && widget.memory.imageUrl!.isNotEmpty) {
+    if (widget.memory.type == MemoryType.video && widget.memory.imageUrls.isNotEmpty) {
       _initVideo();
     }
   }
 
   void _initVideo() {
     try {
-      _videoController = widget.memory.imageUrl!.startsWith('http')
-          ? VideoPlayerController.networkUrl(Uri.parse(widget.memory.imageUrl!))
-          : VideoPlayerController.file(File(widget.memory.imageUrl!));
+      final videoPath = widget.memory.imageUrls.first;
+      _videoController = videoPath.startsWith('http')
+          ? VideoPlayerController.networkUrl(Uri.parse(videoPath))
+          : VideoPlayerController.file(File(videoPath));
 
       _videoController!.initialize().then((_) {
+        _videoController!.setLooping(true);
         if (mounted) setState(() {});
       }).catchError((e) {
         debugPrint("Video init error: $e");
@@ -69,9 +70,10 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
   void _addComment() async {
     if (_commentController.text.trim().isEmpty) return;
     
+    final profile = _storageService.getUserProfile();
     final newComment = Comment(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      userName: "You",
+      userName: profile?.displayName ?? "You",
       text: _commentController.text,
       date: DateTime.now(),
     );
@@ -81,8 +83,16 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
       _commentController.clear();
     });
 
-    if (widget.isCommunityPost) {
-      await _storageService.addCommunityComment(widget.memory.id, newComment);
+    try {
+      if (widget.isCommunityPost) {
+        await _storageService.addCommunityComment(widget.memory.id, newComment);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Cloud comment failed, saved locally.")),
+        );
+      }
     }
     
     FocusScope.of(context).unfocus();
@@ -100,6 +110,45 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
 
     if (widget.isCommunityPost) {
       await _storageService.updateReaction(widget.memory.id, widget.memory.reactionCount);
+    }
+  }
+
+  Future<void> _shareToCommunity() async {
+    final profile = _storageService.getUserProfile();
+    if (profile == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please update your profile details first.")),
+      );
+      return;
+    }
+
+    try {
+      final sharedMemory = Memory(
+        id: widget.memory.id,
+        date: widget.memory.date,
+        title: widget.memory.title,
+        preview: widget.memory.preview,
+        type: widget.memory.type,
+        content: widget.memory.content,
+        imageUrls: widget.memory.imageUrls,
+        authorId: profile.uid,
+        authorName: profile.displayName,
+        reactionCount: widget.memory.reactionCount,
+        comments: widget.memory.comments,
+      );
+
+      await _storageService.shareToCommunity(sharedMemory, null);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Memory shared to community feed!")),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Share failed: $e")),
+        );
+      }
     }
   }
 
@@ -121,8 +170,12 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
         title: Text(widget.isCommunityPost ? "Community Post" : "Memory", style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
         actions: [
           if (!widget.isCommunityPost) ...[
+            IconButton(
+              icon: Icon(Icons.share_outlined, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+              onPressed: _shareToCommunity,
+            ),
             Padding(
-              padding: const EdgeInsets.only(right: 16.0),
+              padding: const EdgeInsets.only(right: 8.0),
               child: GestureDetector(
                 onTap: () {
                   if (widget.onToggleLock != null) widget.onToggleLock!(memory.id);
@@ -139,7 +192,6 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
             ),
           ],
         ],
-        bottom: PreferredSize(preferredSize: const Size.fromHeight(1), child: Container(color: theme.dividerColor, height: 1)),
       ),
       body: Column(
         children: [
@@ -149,7 +201,7 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (widget.isCommunityPost)
+                  if (widget.isCommunityPost || memory.authorName != null)
                     Row(
                       children: [
                         CircleAvatar(
@@ -167,7 +219,7 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                   const SizedBox(height: 16),
                   Text(_formatDate(memory.date), style: TextStyle(color: theme.colorScheme.primary, fontSize: 14, fontWeight: FontWeight.w500)),
                   const SizedBox(height: 16),
-                  if (memory.imageUrl != null && memory.imageUrl!.isNotEmpty) ...[
+                  if (memory.imageUrls.isNotEmpty) ...[
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: _buildMediaContent(memory, theme),
@@ -214,34 +266,49 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
                   Text("Comments", style: theme.textTheme.titleLarge?.copyWith(fontSize: 18)),
                   const SizedBox(height: 16),
                   ...memory.comments.map((c) => _buildCommentTile(c, theme)),
-                  const SizedBox(height: 100),
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
           ),
           
-          Container(
-            padding: EdgeInsets.only(left: 20, right: 20, top: 12, bottom: MediaQuery.of(context).viewInsets.bottom + 12),
-            decoration: BoxDecoration(color: theme.colorScheme.surface, boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), blurRadius: 10)], border: Border(top: BorderSide(color: theme.dividerColor))),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _commentController,
-                    style: TextStyle(color: theme.colorScheme.onSurface),
-                    decoration: InputDecoration(
-                      hintText: "Add a comment...",
-                      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
-                      filled: true,
-                      fillColor: isDark ? theme.scaffoldBackgroundColor : const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+          SafeArea(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surface,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.2 : 0.05), 
+                    blurRadius: 10,
+                    offset: const Offset(0, -2),
+                  )
+                ],
+                border: Border(top: BorderSide(color: theme.dividerColor)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _commentController,
+                      style: TextStyle(color: theme.colorScheme.onSurface),
+                      decoration: InputDecoration(
+                        hintText: "Add a comment...",
+                        hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
+                        filled: true,
+                        fillColor: isDark ? theme.scaffoldBackgroundColor : const Color(0xFFF8FAFC),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                IconButton(onPressed: _addComment, icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary)),
-              ],
+                  const SizedBox(width: 8),
+                  IconButton(
+                    onPressed: _addComment, 
+                    icon: Icon(Icons.send_rounded, color: theme.colorScheme.primary),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -254,35 +321,61 @@ class _MemoryDetailScreenState extends State<MemoryDetailScreen> {
       if (_videoController != null && _videoController!.value.isInitialized) {
         return Column(
           children: [
-            AspectRatio(
-              aspectRatio: _videoController!.value.aspectRatio,
-              child: VideoPlayer(_videoController!),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _videoController!.value.isPlaying 
+                      ? _videoController!.pause() 
+                      : _videoController!.play();
+                });
+              },
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  AspectRatio(
+                    aspectRatio: _videoController!.value.aspectRatio,
+                    child: VideoPlayer(_videoController!),
+                  ),
+                  if (!_videoController!.value.isPlaying)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.play_arrow, color: Colors.white, size: 40),
+                    ),
+                ],
+              ),
             ),
             VideoProgressIndicator(_videoController!, allowScrubbing: true),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(_videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow),
-                  onPressed: () {
-                    setState(() {
-                      _videoController!.value.isPlaying ? _videoController!.pause() : _videoController!.play();
-                    });
-                  },
-                ),
-              ],
-            ),
           ],
         );
       } else {
         return Container(height: 250, width: double.infinity, color: Colors.black12, child: const Center(child: CircularProgressIndicator()));
       }
     } else if (memory.type == MemoryType.photo) {
-      return memory.imageUrl!.startsWith('http')
-          ? Image.network(memory.imageUrl!, width: double.infinity, height: 250, fit: BoxFit.cover)
-          : Image.file(File(memory.imageUrl!), width: double.infinity, height: 250, fit: BoxFit.cover);
+      return SizedBox(
+        height: 400,
+        child: PageView.builder(
+          itemCount: memory.imageUrls.length,
+          itemBuilder: (context, index) {
+            return InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: _buildImage(memory.imageUrls[index]),
+            );
+          },
+        ),
+      );
     }
     return const SizedBox.shrink();
+  }
+
+  Widget _buildImage(String url) {
+    return url.startsWith('http')
+        ? Image.network(url, width: double.infinity, fit: BoxFit.contain)
+        : Image.file(File(url), width: double.infinity, fit: BoxFit.contain);
   }
 
   Widget _buildActionButton({required IconData icon, required String label, Color? color, required VoidCallback onTap}) {
