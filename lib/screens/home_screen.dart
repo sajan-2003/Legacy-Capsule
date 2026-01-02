@@ -12,6 +12,7 @@ import 'memory_detail_screen.dart';
 import 'time_lock_screen.dart';
 import 'notifications_screen.dart';
 import 'community_screen.dart';
+import 'chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;
@@ -167,6 +168,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final List<Widget> pages = [
       _buildJournalContent(),
       CommunityScreen(isSearching: _isSearching, searchController: _searchController, onThemeChanged: widget.onThemeChanged),
+      const ChatListScreen(),
       TimeLockScreen(isSearching: _isSearching, searchController: _searchController, onThemeChanged: widget.onThemeChanged),
       const NotificationsScreen(),
     ];
@@ -176,7 +178,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
         resizeToAvoidBottomInset: true,
-        body: pages[_bottomNavIndex],
+        body: IndexedStack(
+          index: _bottomNavIndex,
+          children: pages,
+        ),
         bottomNavigationBar: Container(
           decoration: BoxDecoration(
             border: Border(top: BorderSide(color: theme.dividerColor, width: 1)),
@@ -204,9 +209,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 label: 'Journal',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline),
-                activeIcon: Icon(Icons.people),
+                icon: Icon(Icons.public_outlined),
+                activeIcon: Icon(Icons.public),
                 label: 'Community',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.chat_bubble_outline),
+                activeIcon: Icon(Icons.chat_bubble),
+                label: 'Chats',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.lock_clock_outlined),
@@ -219,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   child: Icon(Icons.notifications_outlined),
                 ),
                 activeIcon: Icon(Icons.notifications),
-                label: 'Notifications',
+                label: 'Alerts',
               ),
             ],
           ),
@@ -245,7 +255,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildJournalContent() {
     final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -317,8 +326,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           child: TabBarView(
             controller: _tabController,
             children: [
-              _buildMemoriesTab(theme, isDark),
-              _buildFuturePlansTab(theme, isDark),
+              _buildMemoriesTab(theme, theme.brightness == Brightness.dark),
+              _buildFuturePlansTab(theme, theme.brightness == Brightness.dark),
             ],
           ),
         ),

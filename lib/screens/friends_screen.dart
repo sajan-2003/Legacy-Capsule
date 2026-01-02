@@ -1,0 +1,214 @@
+import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../models/user.dart';
+import '../services/friends_service.dart';
+import '../services/chat_service.dart';
+import 'chat_room_screen.dart';
+
+class FriendsScreen extends StatefulWidget {
+  const FriendsScreen({super.key});
+
+  @override
+  State<FriendsScreen> createState() => _FriendsScreenState();
+}
+
+class _FriendsScreenState extends State<FriendsScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final FriendsService _friendsService = FriendsService();
+  final ChatService _chatService = ChatService();
+  List<UserProfile> _contactSuggestions = [];
+  bool _isLoadingContacts = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+  }
+
+  Future<void> _syncContacts() async {
+    setState(() => _isLoadingContacts = true);
+    try {
+      final suggestions = await _friendsService.syncContacts();
+      setState(() => _contactSuggestions = suggestions);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error syncing contacts: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingContacts = false);
+    }
+  }
+
+  void _startChat(UserProfile otherUser) async {
+    final roomId = await _chatService.getOrCreateChatRoom(otherUser.uid);
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ChatRoomScreen(chatRoomId: roomId, otherUser: otherUser),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Friends'),
+        bottom: TabBar(
+          controller: _tabController,
+          tabs: const [
+            Tab(text: 'My Friends'),
+            Tab(text: 'Requests'),
+            Tab(text: 'Sync Contacts'),
+          ],
+        ),
+      ),
+      body: TabBarView(
+        controller: _tabController,
+        children: [
+          _buildFriendsList(),
+          _buildRequestsList(),
+          _buildSyncTab(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFriendsList() {
+    return StreamBuilder<List<UserProfile>>(
+      stream: _friendsService.getFriends(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final friends = snapshot.data ?? [];
+        if (friends.isEmpty) {
+          return const Center(child: Text('No friends yet. Try syncing contacts!'));
+        }
+        return ListView.builder(
+          itemCount: friends.length,
+          itemBuilder: (context, index) {
+            final friend = friends[index];
+            return ListTile(
+              leading: CircleAvatar(
+                backgroundImage: friend.photoUrl != null ? NetworkImage(friend.photoUrl!) : null,
+                child: friend.photoUrl == null ? const Icon(Icons.person) : null,
+              ),
+              title: Text(friend.displayName ?? 'User'),
+              trailing: IconButton(
+                icon: const Icon(Icons.chat_bubble_outline),
+                onPressed: () => _startChat(friend),
+              ),
+              onTap: () => _startChat(friend),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildRequestsList() {
+    final currentUserId = FirebaseAuth.instance.currentUser?.uid;
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('friend_requests')
+          .where('to', isEqualTo: currentUserId)
+          .where('status', isEqualTo: 'pending')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+        final requests = snapshot.data!.docs;
+        if (requests.isEmpty) return const Center(child: Text('No pending requests'));
+
+        return ListView.builder(
+          itemCount: requests.length,
+          itemBuilder: (context, index) {
+            final req = requests[index];
+            final fromId = req['from'];
+            
+            return FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance.collection('users').doc(fromId).get(),
+              builder: (context, userSnap) {
+                if (!userSnap.hasData) return const ListTile();
+                final user = UserProfile.fromJson(userSnap.data!.data() as Map<String, dynamic>);
+                
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
+                    child: user.photoUrl == null ? const Icon(Icons.person) : null,
+                  ),
+                  title: Text(user.displayName ?? 'User'),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.check, color: Colors.green),
+                        onPressed: () => _friendsService.acceptFriendRequest(req.id, fromId),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.red),
+                        onPressed: () => req.reference.update({'status': 'declined'}),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSyncTab() {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: ElevatedButton.icon(
+            onPressed: _isLoadingContacts ? null : _syncContacts,
+            icon: const Icon(Icons.sync),
+            label: const Text('Find Friends from Contacts'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 50),
+            ),
+          ),
+        ),
+        if (_isLoadingContacts)
+          const Center(child: CircularProgressIndicator())
+        else if (_contactSuggestions.isEmpty)
+          const Expanded(child: Center(child: Text('Sync contacts to find friends on Legacy Capsule')))
+        else
+          Expanded(
+            child: ListView.builder(
+              itemCount: _contactSuggestions.length,
+              itemBuilder: (context, index) {
+                final user = _contactSuggestions[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundImage: user.photoUrl != null ? NetworkImage(user.photoUrl!) : null,
+                    child: user.photoUrl == null ? const Icon(Icons.person) : null,
+                  ),
+                  title: Text(user.displayName ?? 'User'),
+                  subtitle: Text(user.phoneNumber ?? ''),
+                  trailing: ElevatedButton(
+                    onPressed: () {
+                      _friendsService.sendFriendRequest(user.uid);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Friend request sent!')),
+                      );
+                    },
+                    child: const Text('Add'),
+                  ),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+}
