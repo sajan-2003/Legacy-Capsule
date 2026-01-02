@@ -5,6 +5,7 @@ class UserProfile {
   final String? photoUrl;
   final String? bio;
   final String? phoneNumber;
+  final DateTime? dateOfBirth;
   final DateTime? createdAt;
 
   UserProfile({
@@ -14,6 +15,7 @@ class UserProfile {
     this.photoUrl,
     this.bio,
     this.phoneNumber,
+    this.dateOfBirth,
     this.createdAt,
   });
 
@@ -24,16 +26,26 @@ class UserProfile {
     'photoUrl': photoUrl,
     'bio': bio,
     'phoneNumber': phoneNumber,
+    'dateOfBirth': dateOfBirth?.toIso8601String(),
     'createdAt': createdAt?.toIso8601String(),
   };
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
-    uid: json['uid'],
-    email: json['email'],
-    displayName: json['displayName'],
-    photoUrl: json['photoUrl'],
-    bio: json['bio'],
-    phoneNumber: json['phoneNumber'],
-    createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : null,
-  );
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      uid: json['uid'] ?? '',
+      email: json['email'] ?? '',
+      displayName: json['displayName'],
+      photoUrl: json['photoUrl'],
+      bio: json['bio'],
+      phoneNumber: json['phoneNumber'],
+      dateOfBirth: _parseDate(json['dateOfBirth']),
+      createdAt: _parseDate(json['createdAt']),
+    );
+  }
+
+  static DateTime? _parseDate(dynamic date) {
+    if (date == null) return null;
+    if (date is String) return DateTime.tryParse(date);
+    return null;
+  }
 }

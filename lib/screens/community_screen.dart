@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
+import 'package:visibility_detector/visibility_detector.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../models/memory.dart';
 import '../services/storage_service.dart';
 import 'memory_detail_screen.dart';
@@ -23,47 +25,21 @@ class CommunityScreen extends StatefulWidget {
   State<CommunityScreen> createState() => _CommunityScreenState();
 }
 
-class _CommunityScreenState extends State<CommunityScreen> with SingleTickerProviderStateMixin {
+class _CommunityScreenState extends State<CommunityScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  final ImagePicker _picker = ImagePicker();
   bool _headerSearching = false;
-  final StorageService _storageService = StorageService();
-  late Stream<List<Memory>> _postsStream;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    _postsStream = _storageService.getCommunityPosts();
-    
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) {
-        setState(() {});
-      }
-    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<void> _openCamera() async {
-    try {
-      final XFile? photo = await _picker.pickImage(source: ImageSource.camera);
-      if (photo != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Photo captured: ${photo.name}')),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error accessing camera: $e')),
-        );
-      }
-    }
   }
 
   @override
@@ -75,54 +51,56 @@ class _CommunityScreenState extends State<CommunityScreen> with SingleTickerProv
       appBar: AppBar(
         backgroundColor: theme.colorScheme.surface,
         elevation: 0,
-        title: _headerSearching 
-          ? TextField(
-              controller: widget.searchController,
-              autofocus: true,
-              style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
-              decoration: InputDecoration(
-                hintText: "Search community...",
-                hintStyle: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4)),
-                border: InputBorder.none,
-              ),
-              onChanged: (val) => setState(() {}),
-            )
-          : Text(
-              "Community",
-              style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-            ),
+        toolbarHeight: 56, // Explicit height
+        title: _headerSearching
+            ? TextField(
+                controller: widget.searchController,
+                autofocus: true,
+                style: TextStyle(color: theme.colorScheme.onSurface, fontSize: 16),
+                decoration: InputDecoration(
+                  hintText: "Search community...",
+                  hintStyle: TextStyle(
+                      color: theme.colorScheme.onSurface.withAlpha(102)),
+                  border: InputBorder.none,
+                ),
+                onChanged: (val) => setState(() {}),
+              )
+            : Text("Community",
+                style: theme.textTheme.titleLarge
+                    ?.copyWith(fontWeight: FontWeight.bold, fontSize: 22)),
         actions: [
           IconButton(
-            icon: Icon(_headerSearching ? Icons.close : Icons.search, color: theme.colorScheme.onSurface.withOpacity(0.6)),
+            icon: Icon(_headerSearching ? Icons.close : Icons.search,
+                color: theme.colorScheme.onSurface.withAlpha(153), size: 22),
             onPressed: () => setState(() {
               _headerSearching = !_headerSearching;
-              if (!_headerSearching) {
-                widget.searchController.clear();
-              }
+              if (!_headerSearching) widget.searchController.clear();
             }),
           ),
           IconButton(
-            icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.onSurface.withOpacity(0.6)),
-            onPressed: _openCamera,
+            icon: Icon(Icons.camera_alt_outlined,
+                color: theme.colorScheme.onSurface.withAlpha(153), size: 22),
+            onPressed: () {},
           ),
-          const SizedBox(width: 8),
         ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: theme.colorScheme.primary,
-          unselectedLabelColor: theme.colorScheme.onSurface.withOpacity(0.5),
+          unselectedLabelColor: theme.colorScheme.onSurface.withAlpha(127),
           indicatorColor: theme.colorScheme.primary,
+          indicatorWeight: 2,
+          labelPadding: EdgeInsets.zero,
           tabs: const [
-            Tab(text: "Feed"),
-            Tab(text: "Friends"),
-            Tab(text: "Groups"),
+            Tab(height: 40, text: "Explore"),
+            Tab(height: 40, text: "Friends"),
+            Tab(height: 40, text: "Groups"),
           ],
         ),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          _FeedTab(postsStream: _postsStream, storageService: _storageService, searchController: widget.searchController),
+          _ExploreTab(searchController: widget.searchController),
           const _FriendsTab(),
           const _GroupsTab(),
         ],
@@ -131,18 +109,18 @@ class _CommunityScreenState extends State<CommunityScreen> with SingleTickerProv
   }
 }
 
-class _FeedTab extends StatefulWidget {
-  final Stream<List<Memory>> postsStream;
-  final StorageService storageService;
+class _ExploreTab extends StatefulWidget {
   final TextEditingController searchController;
-
-  const _FeedTab({required this.postsStream, required this.storageService, required this.searchController});
+  const _ExploreTab({required this.searchController});
 
   @override
-  State<_FeedTab> createState() => _FeedTabState();
+  State<_ExploreTab> createState() => _ExploreTabState();
 }
 
-class _FeedTabState extends State<_FeedTab> with AutomaticKeepAliveClientMixin {
+class _ExploreTabState extends State<_ExploreTab>
+    with AutomaticKeepAliveClientMixin {
+  final StorageService _storageService = StorageService();
+
   @override
   bool get wantKeepAlive => true;
 
@@ -150,48 +128,52 @@ class _FeedTabState extends State<_FeedTab> with AutomaticKeepAliveClientMixin {
   Widget build(BuildContext context) {
     super.build(context);
     final theme = Theme.of(context);
-    return RepaintBoundary(
-      child: StreamBuilder<List<Memory>>(
-        stream: widget.postsStream,
-        initialData: widget.storageService.getCachedCommunityPosts(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting && !snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          
-          final posts = snapshot.data ?? [];
-          if (posts.isEmpty) {
-            return Center(child: Text("No posts yet. Be the first to share!", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5))));
-          }
 
-          return ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            itemCount: posts.length,
-            itemBuilder: (context, index) {
-              final memory = posts[index];
-              final query = widget.searchController.text.toLowerCase();
-              if (query.isNotEmpty && !memory.title.toLowerCase().contains(query)) {
-                return const SizedBox.shrink();
-              }
-              return _PostCard(
-                key: ValueKey(memory.id),
-                memory: memory,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => MemoryDetailScreen(
-                        memory: memory,
-                        isCommunityPost: true,
+    return RefreshIndicator(
+      onRefresh: () async => setState(() {}),
+      child: StreamBuilder<List<Memory>>(
+          stream: Stream.fromFuture(_storageService.getCommunityMemories()),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final posts = snapshot.data ?? [];
+            if (posts.isEmpty) {
+              return Center(
+                  child: Text("No posts yet.",
+                      style: TextStyle(
+                          color: theme.colorScheme.onSurface.withAlpha(127))));
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              itemCount: posts.length,
+              itemBuilder: (context, index) {
+                final memory = posts[index];
+                final query = widget.searchController.text.toLowerCase();
+                if (query.isNotEmpty &&
+                    !memory.title.toLowerCase().contains(query)) {
+                  return const SizedBox.shrink();
+                }
+                return _PostCard(
+                  key: ValueKey(memory.id),
+                  memory: memory,
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MemoryDetailScreen(
+                          memory: memory,
+                          isCommunityPost: true,
+                        ),
                       ),
-                    ),
-                  );
-                },
-              );
-            },
-          );
-        }
-      ),
+                    );
+                  },
+                );
+              },
+            );
+          }),
     );
   }
 }
@@ -217,7 +199,8 @@ class _PostCardState extends State<_PostCard> {
         widget.memory.reactionCount++;
       }
     });
-    await _storageService.updateReaction(widget.memory.id, widget.memory.reactionCount);
+    await _storageService.updateReaction(
+        widget.memory.id, widget.memory.reactionCount);
   }
 
   @override
@@ -227,15 +210,18 @@ class _PostCardState extends State<_PostCard> {
     final dateFormat = DateFormat('MMM d, yyyy');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? theme.colorScheme.onSurface.withOpacity(0.1) : const Color(0xFFF1F5F9)),
+        border: Border.all(
+            color: isDark
+                ? theme.colorScheme.onSurface.withAlpha(25)
+                : const Color(0xFFF1F5F9)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-            blurRadius: 8,
+            color: Colors.black.withAlpha(isDark ? 51 : 10),
+            blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
@@ -245,150 +231,196 @@ class _PostCardState extends State<_PostCard> {
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
             child: Row(
               children: [
                 CircleAvatar(
-                  radius: 18,
-                  backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-                  child: Icon(Icons.person, color: theme.colorScheme.primary, size: 20),
+                  radius: 16,
+                  backgroundColor: theme.colorScheme.primary.withAlpha(25),
+                  child: Icon(Icons.person,
+                      color: theme.colorScheme.primary, size: 18),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(widget.memory.authorName ?? "Legacy User", style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold)),
+                      Text(widget.memory.authorName ?? "Legacy User",
+                          style: theme.textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.bold)),
                       Text(
                         dateFormat.format(widget.memory.date),
-                        style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 12),
+                        style: TextStyle(
+                            color: theme.colorScheme.onSurface.withAlpha(102),
+                            fontSize: 11),
                       ),
                     ],
                   ),
                 ),
                 IconButton(
-                  icon: Icon(Icons.more_horiz, color: theme.colorScheme.onSurface.withOpacity(0.4)),
+                  icon: Icon(Icons.more_horiz,
+                      color: theme.colorScheme.onSurface.withAlpha(102), size: 18),
                   onPressed: () {},
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
           ),
 
-          // Description (Title + Content)
+          // Description
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.memory.title,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+                  style: theme.textTheme.titleSmall
+                      ?.copyWith(fontWeight: FontWeight.bold),
                 ),
                 if (widget.memory.content.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     widget.memory.content,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurface.withOpacity(0.8),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withAlpha(204),
                     ),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
 
-          // Media (Image/Video)
-          if (widget.memory.imageUrls.isNotEmpty && (widget.memory.type == MemoryType.photo || widget.memory.type == MemoryType.video))
-            GestureDetector(
-              onTap: widget.onTap,
-              child: ClipRRect(
-                child: widget.memory.type == MemoryType.photo 
-                  ? _PostImageGallery(imageUrls: widget.memory.imageUrls, onTap: widget.onTap)
-                  : _CommunityVideoPreview(
+          // Media
+          if (widget.memory.imageUrls.isNotEmpty &&
+              (widget.memory.type == MemoryType.photo ||
+                  widget.memory.type == MemoryType.video))
+            ClipRRect(
+              child: widget.memory.type == MemoryType.photo
+                  ? _PostImageGallery(
+                      imageUrls: widget.memory.imageUrls, onTap: widget.onTap)
+                  : _CommunityFullControlVideoPlayer(
                       videoPath: widget.memory.imageUrls.first,
                       onTap: widget.onTap,
                     ),
-              ),
             ),
 
           // Stats
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
             child: Row(
               children: [
-                Icon(Icons.favorite, size: 14, color: widget.memory.reactionCount > 0 ? Colors.red : theme.colorScheme.onSurface.withOpacity(0.3)),
+                Icon(Icons.favorite,
+                    size: 12,
+                    color: widget.memory.reactionCount > 0
+                        ? Colors.red
+                        : theme.colorScheme.onSurface.withAlpha(77)),
                 const SizedBox(width: 4),
-                Text(widget.memory.reactionCount.toString(), style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5))),
+                Text(widget.memory.reactionCount.toString(),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurface.withAlpha(127))),
                 const Spacer(),
-                Text("${widget.memory.comments.length} comments", style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurface.withOpacity(0.5))),
+                Text("${widget.memory.comments.length} comments",
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: theme.colorScheme.onSurface.withAlpha(127))),
               ],
             ),
           ),
 
-          const Divider(height: 1, indent: 16, endIndent: 16),
+          const Divider(height: 1, indent: 12, endIndent: 12),
 
-          // Action Buttons (React, Comment)
+          // Actions
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             child: Row(
               children: [
                 Expanded(
                   child: TextButton.icon(
                     onPressed: _toggleReaction,
                     icon: Icon(
-                      widget.memory.reactionCount > 0 ? Icons.favorite : Icons.favorite_border,
-                      size: 20,
-                      color: widget.memory.reactionCount > 0 ? Colors.red : theme.colorScheme.onSurface.withOpacity(0.6),
+                      widget.memory.reactionCount > 0
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      size: 18,
+                      color: widget.memory.reactionCount > 0
+                          ? Colors.red
+                          : theme.colorScheme.onSurface.withAlpha(153),
                     ),
-                    label: Text("Love", style: TextStyle(color: widget.memory.reactionCount > 0 ? Colors.red : theme.colorScheme.onSurface.withOpacity(0.6))),
+                    label: Text("Love",
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: widget.memory.reactionCount > 0
+                                ? Colors.red
+                                : theme.colorScheme.onSurface.withAlpha(153))),
                   ),
                 ),
                 Expanded(
                   child: TextButton.icon(
-                    onPressed: () => setState(() => _showComments = !_showComments),
-                    icon: Icon(Icons.chat_bubble_outline, size: 20, color: theme.colorScheme.onSurface.withOpacity(0.6)),
-                    label: Text("Comment", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.6))),
+                    onPressed: () =>
+                        setState(() => _showComments = !_showComments),
+                    icon: Icon(Icons.chat_bubble_outline,
+                        size: 18,
+                        color: theme.colorScheme.onSurface.withAlpha(153)),
+                    label: Text("Comment",
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: theme.colorScheme.onSurface.withAlpha(153))),
                   ),
                 ),
               ],
             ),
           ),
 
-          // Wrapped Comments Section
           if (_showComments) ...[
             const Divider(height: 1),
             Container(
-              color: isDark ? Colors.black.withOpacity(0.05) : const Color(0xFFF8FAFC),
+              color:
+                  isDark ? Colors.black.withAlpha(13) : const Color(0xFFF8FAFC),
               child: Column(
                 children: [
                   if (widget.memory.comments.isNotEmpty)
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      padding: const EdgeInsets.all(12),
-                      itemCount: widget.memory.comments.length > 3 ? 3 : widget.memory.comments.length,
+                      padding: const EdgeInsets.all(8),
+                      itemCount: widget.memory.comments.length > 2
+                          ? 2
+                          : widget.memory.comments.length,
                       itemBuilder: (context, index) {
                         final comment = widget.memory.comments[index];
                         return _WrappedCommentTile(comment: comment);
                       },
                     ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
                     child: InkWell(
                       onTap: widget.onTap,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.surface,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: theme.dividerColor),
                         ),
                         child: Row(
                           children: [
-                            Text("Write a comment...", style: TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.4), fontSize: 13)),
+                            Text("Write a comment...",
+                                style: TextStyle(
+                                    color: theme.colorScheme.onSurface
+                                        .withAlpha(102),
+                                    fontSize: 12)),
                             const Spacer(),
-                            Icon(Icons.send_rounded, size: 18, color: theme.colorScheme.primary.withOpacity(0.5)),
+                            Icon(Icons.send_rounded,
+                                size: 16,
+                                color:
+                                    theme.colorScheme.primary.withAlpha(127)),
                           ],
                         ),
                       ),
@@ -414,31 +446,34 @@ class _WrappedCommentTile extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: 14,
-            backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-            child: Icon(Icons.person, size: 14, color: theme.colorScheme.primary),
+            radius: 12,
+            backgroundColor: theme.colorScheme.primary.withAlpha(25),
+            child:
+                Icon(Icons.person, size: 12, color: theme.colorScheme.primary),
           ),
           const SizedBox(width: 8),
           Flexible(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
                 color: isDark ? theme.colorScheme.surface : Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 2, offset: const Offset(0, 1)),
-                ],
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(comment.userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                  Text(comment.text, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withOpacity(0.8))),
+                  Text(comment.userName,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold, fontSize: 11)),
+                  Text(comment.text,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: theme.colorScheme.onSurface.withAlpha(204))),
                 ],
               ),
             ),
@@ -458,31 +493,36 @@ class _PostImageGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+    final isDark = theme.brightness == Brightness.dark;
+
     if (imageUrls.length == 1) {
-      return _galleryImage(imageUrls.first, theme, height: 250);
+      return _galleryImage(imageUrls.first, theme, isDark, height: 220);
     }
 
     return SizedBox(
-      height: 250,
+      height: 220,
       child: PageView.builder(
         itemCount: imageUrls.length,
         itemBuilder: (context, index) {
           return Stack(
             children: [
-              _galleryImage(imageUrls[index], theme, height: 250),
+              _galleryImage(imageUrls[index], theme, isDark, height: 220),
               Positioned(
-                top: 12,
-                right: 12,
+                top: 8,
+                right: 8,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
                     color: Colors.black54,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     "${index + 1}/${imageUrls.length}",
-                    style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9,
+                        fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -493,30 +533,22 @@ class _PostImageGallery extends StatelessWidget {
     );
   }
 
-  Widget _galleryImage(String url, ThemeData theme, {required double height}) {
+  Widget _galleryImage(String url, ThemeData theme, bool isDark, {required double height}) {
     return url.startsWith('http')
-        ? Image.network(
-            url,
+        ? CachedNetworkImage(
+            imageUrl: url,
             width: double.infinity,
             height: height,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => _errorPlaceholder(theme, height),
+            placeholder: (context, url) => Container(color: Colors.black12),
+            errorWidget: (context, url, error) => const Icon(Icons.broken_image),
           )
         : Image.file(
             File(url),
             width: double.infinity,
             height: height,
             fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => _errorPlaceholder(theme, height),
           );
-  }
-
-  Widget _errorPlaceholder(ThemeData theme, double height) {
-    return Container(
-      height: height,
-      color: theme.colorScheme.onSurface.withOpacity(0.05),
-      child: Icon(Icons.broken_image_outlined, color: theme.colorScheme.onSurface.withOpacity(0.3)),
-    );
   }
 }
 
@@ -527,7 +559,8 @@ class _FriendsTab extends StatefulWidget {
   State<_FriendsTab> createState() => _FriendsTabState();
 }
 
-class _FriendsTabState extends State<_FriendsTab> with AutomaticKeepAliveClientMixin {
+class _FriendsTabState extends State<_FriendsTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -536,42 +569,46 @@ class _FriendsTabState extends State<_FriendsTab> with AutomaticKeepAliveClientM
     super.build(context);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: 5,
       itemBuilder: (context, index) {
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: const EdgeInsets.only(bottom: 10),
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: isDark ? theme.colorScheme.onSurface.withOpacity(0.1) : const Color(0xFFF1F5F9)),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+                color: isDark
+                    ? theme.colorScheme.onSurface.withAlpha(25)
+                    : const Color(0xFFF1F5F9)),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(isDark ? 0.2 : 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withAlpha(isDark ? 51 : 10),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
               ),
             ],
           ),
           child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
             leading: CircleAvatar(
-              radius: 20,
-              backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
-              child: Text("F${index + 1}", style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.bold)),
+              radius: 18,
+              backgroundColor: theme.colorScheme.primary.withAlpha(25),
+              child: Text("${index + 1}",
+                  style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold)),
             ),
-            title: Text("Friend ${index + 1}", style: const TextStyle(fontWeight: FontWeight.bold)),
-            subtitle: Text("Online", style: TextStyle(color: Colors.green.shade400, fontSize: 12)),
-            trailing: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.05),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(Icons.chat_bubble_outline, size: 18, color: theme.colorScheme.primary),
-            ),
+            title: Text("Friend ${index + 1}",
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+            subtitle: Text("Online",
+                style: TextStyle(color: Colors.green.shade400, fontSize: 11)),
+            trailing: Icon(Icons.chat_bubble_outline,
+                size: 16, color: theme.colorScheme.primary),
           ),
         );
       },
@@ -586,7 +623,8 @@ class _GroupsTab extends StatefulWidget {
   State<_GroupsTab> createState() => _GroupsTabState();
 }
 
-class _GroupsTabState extends State<_GroupsTab> with AutomaticKeepAliveClientMixin {
+class _GroupsTabState extends State<_GroupsTab>
+    with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
 
@@ -597,61 +635,118 @@ class _GroupsTabState extends State<_GroupsTab> with AutomaticKeepAliveClientMix
   }
 }
 
-class _CommunityVideoPreview extends StatefulWidget {
+class _CommunityFullControlVideoPlayer extends StatefulWidget {
   final String videoPath;
   final VoidCallback onTap;
-  const _CommunityVideoPreview({required this.videoPath, required this.onTap});
+  const _CommunityFullControlVideoPlayer({required this.videoPath, required this.onTap});
 
   @override
-  State<_CommunityVideoPreview> createState() => _CommunityVideoPreviewState();
+  State<_CommunityFullControlVideoPlayer> createState() => _CommunityFullControlVideoPlayerState();
 }
 
-class _CommunityVideoPreviewState extends State<_CommunityVideoPreview> {
+class _CommunityFullControlVideoPlayerState extends State<_CommunityFullControlVideoPlayer> {
   late VideoPlayerController _controller;
+  bool _isInitialized = false;
+  bool _showControls = true;
+  Timer? _hideTimer;
 
   @override
   void initState() {
     super.initState();
+    _initController();
+  }
+
+  Future<void> _initController() async {
     _controller = widget.videoPath.startsWith('http')
         ? VideoPlayerController.networkUrl(Uri.parse(widget.videoPath))
         : VideoPlayerController.file(File(widget.videoPath));
 
-    _controller.initialize().then((_) {
+    try {
+      await _controller.initialize();
       _controller.setLooping(true);
-      _controller.setVolume(0); 
-      _controller.play();
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() => _isInitialized = true);
+        _startHideTimer();
+      }
+    } catch (e) {
+      debugPrint("Community video init error: $e");
+    }
+  }
+
+  void _startHideTimer() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 2), () {
+      if (mounted) setState(() => _showControls = false);
     });
   }
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (!_controller.value.isInitialized) {
-      return Container(
-        height: 250,
-        width: double.infinity,
-        color: Colors.black12,
-        child: const Center(child: CircularProgressIndicator()),
-      );
+    if (!_isInitialized) {
+      return Container(height: 220, width: double.infinity, color: Colors.black12, child: const Center(child: CircularProgressIndicator(strokeWidth: 2)));
     }
-    return Container(
-      width: double.infinity,
-      height: 250, 
-      color: Colors.black.withOpacity(0.05),
-      child: ClipRect(
-        child: FittedBox(
-          fit: BoxFit.cover,
-          clipBehavior: Clip.hardEdge,
-          child: SizedBox(
-            width: _controller.value.size.width,
-            height: _controller.value.size.height,
-            child: VideoPlayer(_controller),
+
+    return VisibilityDetector(
+      key: Key(widget.videoPath),
+      onVisibilityChanged: (info) {
+        if (!mounted) return;
+        if (info.visibleFraction > 0.8 && !_controller.value.isPlaying) {
+          _controller.play();
+        } else if (info.visibleFraction < 0.2 && _controller.value.isPlaying) {
+          _controller.pause();
+        }
+      },
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _showControls = !_showControls;
+            if (_showControls) _startHideTimer();
+          });
+        },
+        child: Container(
+          width: double.infinity,
+          height: 220,
+          color: Colors.black,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(child: AspectRatio(aspectRatio: _controller.value.aspectRatio, child: VideoPlayer(_controller))),
+              if (_showControls)
+                Container(
+                  color: Colors.black26,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Align(
+                        alignment: Alignment.topRight,
+                        child: IconButton(
+                          icon: Icon(_controller.value.volume > 0 ? Icons.volume_up : Icons.volume_off, color: Colors.white, size: 18),
+                          onPressed: () {
+                            setState(() => _controller.setVolume(_controller.value.volume > 0 ? 0 : 1));
+                            _startHideTimer();
+                          },
+                        ),
+                      ),
+                      IconButton(
+                        iconSize: 40,
+                        icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled, color: Colors.white),
+                        onPressed: () {
+                          setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play());
+                          _startHideTimer();
+                        },
+                      ),
+                      VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: Colors.blueAccent)),
+                    ],
+                  ),
+                ),
+            ],
           ),
         ),
       ),

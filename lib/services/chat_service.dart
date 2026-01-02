@@ -1,69 +1,33 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
 
 class ChatService {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-
-  String get _currentUserId => _auth.currentUser?.uid ?? '';
+  String get _currentUserId => 'demo_user';
 
   Future<String> getOrCreateChatRoom(String otherUserId) async {
-    // Check if a chat room already exists between these two users
-    var query = await _firestore
-        .collection('chat_rooms')
-        .where('participants', arrayContains: _currentUserId)
-        .get();
-
-    for (var doc in query.docs) {
-      List participants = doc['participants'];
-      if (participants.contains(otherUserId)) {
-        return doc.id;
-      }
-    }
-
-    // Create new room if not found
-    var docRef = await _firestore.collection('chat_rooms').add({
-      'participants': [_currentUserId, otherUserId],
-      'lastMessage': '',
-      'lastMessageTime': FieldValue.serverTimestamp(),
-    });
-
-    return docRef.id;
+    // Return a dummy room ID for demo
+    return "demo_room_${otherUserId}";
   }
 
   Stream<List<ChatMessage>> getMessages(String chatRoomId) {
-    return _firestore
-        .collection('chat_rooms')
-        .doc(chatRoomId)
-        .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => ChatMessage.fromFirestore(doc)).toList());
+    // Return a mock conversation for demo
+    return Stream.value([
+      ChatMessage(
+        id: '1',
+        senderId: 'other_user',
+        content: 'Hello! This is a demo message.',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 5)),
+      ),
+      ChatMessage(
+        id: '2',
+        senderId: _currentUserId,
+        content: 'Hi! The app is now in Demo Mode.',
+        timestamp: DateTime.now(),
+      ),
+    ]);
   }
 
   Future<void> sendMessage(String chatRoomId, String content, {MessageType type = MessageType.text}) async {
-    if (content.trim().isEmpty) return;
-
-    final messageData = {
-      'senderId': _currentUserId,
-      'content': content,
-      'timestamp': FieldValue.serverTimestamp(),
-      'type': type.index,
-    };
-
-    // Add message
-    await _firestore
-        .collection('chat_rooms')
-        .doc(chatRoomId)
-        .collection('messages')
-        .add(messageData);
-
-    // Update last message in room
-    await _firestore.collection('chat_rooms').doc(chatRoomId).update({
-      'lastMessage': type == MessageType.text ? content : '[Media]',
-      'lastMessageTime': FieldValue.serverTimestamp(),
-    });
+    debugPrint("Mock: Message sent to $chatRoomId: $content");
   }
 }

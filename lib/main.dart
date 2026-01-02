@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/front_page.dart';
 import 'theme.dart';
+import 'services/storage_service.dart';
 
 void main() async {
-  // Ensure Flutter is ready
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
@@ -13,14 +12,19 @@ void main() async {
     await Hive.initFlutter();
     await Hive.openBox('memories');
     await Hive.openBox('community_cache');
-    // Open the user_profile box which was missing
     await Hive.openBox('user_profile');
 
-    // 2. Initialize Cloud Database (Firebase)
-    await Firebase.initializeApp();
+    final storageService = StorageService();
+    
+    // 2. Clear previous test data to ensure a clean start
+    // Note: You can comment this line out after the first run to persist new data
+    await storageService.clearAllData();
+
+    // 3. Initialize Demo Data
+    await storageService.initializeDemoData();
+    
   } catch (e) {
-    debugPrint("Setup Warning: $e");
-    // We continue so the app still opens even if one service fails
+    debugPrint("Local Database Error: $e");
   }
 
   runApp(const MyApp());

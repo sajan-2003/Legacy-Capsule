@@ -7,14 +7,12 @@
       "name": "legacy_capsule",
       "version": "1.0.0+1",
       "dependencies": [
-        "cloud_firestore",
+        "cached_network_image",
         "cupertino_icons",
         "file_picker",
-        "firebase_auth",
-        "firebase_core",
         "flutter",
         "flutter_contacts",
-        "flutter_facebook_auth",
+        "font_awesome_flutter",
         "hive",
         "hive_flutter",
         "image_picker",
@@ -108,6 +106,17 @@
       ]
     },
     {
+      "name": "cached_network_image",
+      "version": "3.4.1",
+      "dependencies": [
+        "cached_network_image_platform_interface",
+        "cached_network_image_web",
+        "flutter",
+        "flutter_cache_manager",
+        "octo_image"
+      ]
+    },
+    {
       "name": "visibility_detector",
       "version": "0.4.0+2",
       "dependencies": [
@@ -170,36 +179,10 @@
       ]
     },
     {
-      "name": "cloud_firestore",
-      "version": "4.17.5",
+      "name": "font_awesome_flutter",
+      "version": "10.12.0",
       "dependencies": [
-        "cloud_firestore_platform_interface",
-        "cloud_firestore_web",
-        "collection",
-        "firebase_core",
-        "firebase_core_platform_interface",
-        "flutter",
-        "meta"
-      ]
-    },
-    {
-      "name": "firebase_core",
-      "version": "2.32.0",
-      "dependencies": [
-        "firebase_core_platform_interface",
-        "firebase_core_web",
-        "flutter",
-        "meta"
-      ]
-    },
-    {
-      "name": "flutter_facebook_auth",
-      "version": "6.2.0",
-      "dependencies": [
-        "facebook_auth_desktop",
-        "flutter",
-        "flutter_facebook_auth_platform_interface",
-        "flutter_facebook_auth_web"
+        "flutter"
       ]
     },
     {
@@ -679,6 +662,47 @@
       ]
     },
     {
+      "name": "octo_image",
+      "version": "2.1.0",
+      "dependencies": [
+        "flutter"
+      ]
+    },
+    {
+      "name": "flutter_cache_manager",
+      "version": "3.4.1",
+      "dependencies": [
+        "clock",
+        "collection",
+        "file",
+        "flutter",
+        "http",
+        "path",
+        "path_provider",
+        "rxdart",
+        "sqflite",
+        "uuid"
+      ]
+    },
+    {
+      "name": "cached_network_image_web",
+      "version": "1.3.1",
+      "dependencies": [
+        "cached_network_image_platform_interface",
+        "flutter",
+        "flutter_cache_manager",
+        "web"
+      ]
+    },
+    {
+      "name": "cached_network_image_platform_interface",
+      "version": "4.1.1",
+      "dependencies": [
+        "flutter",
+        "flutter_cache_manager"
+      ]
+    },
+    {
       "name": "video_player_web",
       "version": "2.4.0",
       "dependencies": [
@@ -822,81 +846,6 @@
       "dependencies": [
         "flutter",
         "path_provider_platform_interface"
-      ]
-    },
-    {
-      "name": "firebase_core_platform_interface",
-      "version": "5.4.2",
-      "dependencies": [
-        "collection",
-        "flutter",
-        "flutter_test",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "cloud_firestore_web",
-      "version": "3.12.5",
-      "dependencies": [
-        "_flutterfire_internals",
-        "cloud_firestore_platform_interface",
-        "collection",
-        "firebase_core",
-        "firebase_core_web",
-        "flutter",
-        "flutter_web_plugins"
-      ]
-    },
-    {
-      "name": "cloud_firestore_platform_interface",
-      "version": "6.2.5",
-      "dependencies": [
-        "_flutterfire_internals",
-        "collection",
-        "firebase_core",
-        "flutter",
-        "meta",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "firebase_core_web",
-      "version": "2.24.0",
-      "dependencies": [
-        "firebase_core_platform_interface",
-        "flutter",
-        "flutter_web_plugins",
-        "meta",
-        "web"
-      ]
-    },
-    {
-      "name": "facebook_auth_desktop",
-      "version": "1.0.3",
-      "dependencies": [
-        "flutter",
-        "flutter_facebook_auth_platform_interface",
-        "flutter_secure_storage",
-        "http"
-      ]
-    },
-    {
-      "name": "flutter_facebook_auth_web",
-      "version": "5.0.0",
-      "dependencies": [
-        "flutter",
-        "flutter_facebook_auth_platform_interface",
-        "flutter_web_plugins",
-        "js"
-      ]
-    },
-    {
-      "name": "flutter_facebook_auth_platform_interface",
-      "version": "5.0.0",
-      "dependencies": [
-        "flutter",
-        "plugin_platform_interface"
       ]
     },
     {
@@ -1157,6 +1106,42 @@
       ]
     },
     {
+      "name": "uuid",
+      "version": "4.5.2",
+      "dependencies": [
+        "crypto",
+        "fixnum",
+        "meta"
+      ]
+    },
+    {
+      "name": "sqflite",
+      "version": "2.4.2",
+      "dependencies": [
+        "flutter",
+        "path",
+        "sqflite_android",
+        "sqflite_common",
+        "sqflite_darwin",
+        "sqflite_platform_interface"
+      ]
+    },
+    {
+      "name": "rxdart",
+      "version": "0.28.0",
+      "dependencies": []
+    },
+    {
+      "name": "http",
+      "version": "1.6.0",
+      "dependencies": [
+        "async",
+        "http_parser",
+        "meta",
+        "web"
+      ]
+    },
+    {
       "name": "csslib",
       "version": "1.0.2",
       "dependencies": [
@@ -1174,40 +1159,6 @@
       "dependencies": [
         "meta",
         "path"
-      ]
-    },
-    {
-      "name": "_flutterfire_internals",
-      "version": "1.3.35",
-      "dependencies": [
-        "collection",
-        "firebase_core",
-        "firebase_core_platform_interface",
-        "flutter",
-        "meta"
-      ]
-    },
-    {
-      "name": "flutter_secure_storage",
-      "version": "9.2.4",
-      "dependencies": [
-        "flutter",
-        "flutter_secure_storage_linux",
-        "flutter_secure_storage_macos",
-        "flutter_secure_storage_platform_interface",
-        "flutter_secure_storage_web",
-        "flutter_secure_storage_windows",
-        "meta"
-      ]
-    },
-    {
-      "name": "http",
-      "version": "1.6.0",
-      "dependencies": [
-        "async",
-        "http_parser",
-        "meta",
-        "web"
       ]
     },
     {
@@ -1258,88 +1209,50 @@
       "dependencies": []
     },
     {
-      "name": "flutter_secure_storage_windows",
-      "version": "3.1.2",
+      "name": "sqflite_common",
+      "version": "2.5.6",
       "dependencies": [
-        "ffi",
-        "flutter",
-        "flutter_secure_storage_platform_interface",
+        "meta",
         "path",
-        "path_provider",
-        "win32"
+        "synchronized"
       ]
     },
     {
-      "name": "flutter_secure_storage_web",
-      "version": "1.2.1",
+      "name": "sqflite_platform_interface",
+      "version": "2.4.0",
       "dependencies": [
-        "flutter",
-        "flutter_secure_storage_platform_interface",
-        "flutter_web_plugins",
-        "js"
-      ]
-    },
-    {
-      "name": "flutter_secure_storage_platform_interface",
-      "version": "1.1.2",
-      "dependencies": [
-        "flutter",
-        "plugin_platform_interface"
-      ]
-    },
-    {
-      "name": "flutter_secure_storage_macos",
-      "version": "3.1.3",
-      "dependencies": [
-        "flutter",
-        "flutter_secure_storage_platform_interface"
-      ]
-    },
-    {
-      "name": "flutter_secure_storage_linux",
-      "version": "1.2.3",
-      "dependencies": [
-        "flutter",
-        "flutter_secure_storage_platform_interface"
-      ]
-    },
-    {
-      "name": "firebase_auth",
-      "version": "4.16.0",
-      "dependencies": [
-        "firebase_auth_platform_interface",
-        "firebase_auth_web",
-        "firebase_core",
-        "firebase_core_platform_interface",
-        "flutter",
-        "meta"
-      ]
-    },
-    {
-      "name": "firebase_auth_web",
-      "version": "5.8.13",
-      "dependencies": [
-        "firebase_auth_platform_interface",
-        "firebase_core",
-        "firebase_core_web",
-        "flutter",
-        "flutter_web_plugins",
-        "http_parser",
-        "js",
-        "meta"
-      ]
-    },
-    {
-      "name": "firebase_auth_platform_interface",
-      "version": "7.3.0",
-      "dependencies": [
-        "_flutterfire_internals",
-        "collection",
-        "firebase_core",
         "flutter",
         "meta",
-        "plugin_platform_interface"
+        "platform",
+        "plugin_platform_interface",
+        "sqflite_common"
       ]
+    },
+    {
+      "name": "sqflite_darwin",
+      "version": "2.4.2",
+      "dependencies": [
+        "flutter",
+        "meta",
+        "path",
+        "sqflite_common",
+        "sqflite_platform_interface"
+      ]
+    },
+    {
+      "name": "sqflite_android",
+      "version": "2.4.2+2",
+      "dependencies": [
+        "flutter",
+        "path",
+        "sqflite_common",
+        "sqflite_platform_interface"
+      ]
+    },
+    {
+      "name": "synchronized",
+      "version": "3.4.0",
+      "dependencies": []
     }
   ],
   "configVersion": 1

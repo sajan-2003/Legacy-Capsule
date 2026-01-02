@@ -1,55 +1,130 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/memory.dart';
 import '../models/user.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class StorageService {
   static const String _memoriesBoxName = 'memories';
   static const String _communityCacheBoxName = 'community_cache';
   static const String _userBoxName = 'user_profile';
-  static const int _maxFirebaseSize = 50 * 1024 * 1024; // 50MB in bytes
+
+  // --- Clear Data ---
+  Future<void> clearAllData() async {
+    try {
+      await Hive.box(_memoriesBoxName).clear();
+      await Hive.box(_communityCacheBoxName).clear();
+      await Hive.box(_userBoxName).clear();
+      debugPrint("All local boxes cleared.");
+    } catch (e) {
+      debugPrint("Error clearing local data: $e");
+    }
+  }
+
+  // --- Demo Data Injection ---
+  Future<void> initializeDemoData() async {
+    final memoriesBox = Hive.box(_memoriesBoxName);
+    final communityBox = Hive.box(_communityCacheBoxName);
+
+    // Inject Journal Memories if empty
+    if (memoriesBox.isEmpty) {
+      debugPrint("Injecting Journal Demo Data...");
+      final demoJournal = [
+        Memory(
+          id: 'demo_j1',
+          date: DateTime.now().subtract(const Duration(days: 1)),
+          title: "My Journey Begins",
+          preview: "Started my digital legacy journey today.",
+          type: MemoryType.photo,
+          content: "This app is exactly what I needed to keep my private thoughts and memories safe for the future.",
+          imageUrls: ["https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=800&q=80"],
+        ),
+        Memory(
+          id: 'demo_j2',
+          date: DateTime.now().subtract(const Duration(days: 3)),
+          title: "Note to Future Self",
+          preview: "Remember to stay curious and never stop learning.",
+          type: MemoryType.text,
+          content: "Life moves fast. I'm writing this to remind myself of the goals I set this year.",
+        ),
+      ];
+      for (var m in demoJournal) {
+        await memoriesBox.put(m.id, jsonEncode(m.toJson()));
+      }
+    }
+
+    // Inject Community Posts if empty
+    if (communityBox.isEmpty) {
+      debugPrint("Injecting Community Demo Data...");
+      final demoCommunity = [
+        Memory(
+          id: 'demo_c1',
+          date: DateTime.now().subtract(const Duration(hours: 2)),
+          title: "Coffee & Code",
+          preview: "Best way to spend a Saturday morning.",
+          type: MemoryType.photo,
+          content: "Exploring some new Flutter features while enjoying a flat white.",
+          imageUrls: ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80"],
+          authorId: 'user_alex',
+          authorName: 'Alex Rivers',
+          reactionCount: 15,
+        ),
+        Memory(
+          id: 'demo_c2',
+          date: DateTime.now().subtract(const Duration(days: 2)),
+          title: "Peaceful Retreat",
+          preview: "A short clip from my weekend getaway.",
+          type: MemoryType.video,
+          content: "The nature here is breathtaking. So glad I could capture this moment.",
+          imageUrls: ["https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4"],
+          authorId: 'user_sarah',
+          authorName: 'Sarah Jenkins',
+          reactionCount: 42,
+        ),
+      ];
+      for (var m in demoCommunity) {
+        await communityBox.put(m.id, jsonEncode(m.toJson()));
+      }
+    }
+  }
 
   // --- User Profile ---
-
   Future<void> saveUserProfile(UserProfile profile) async {
     final box = Hive.box(_userBoxName);
     await box.put('current_user', jsonEncode(profile.toJson()));
-    
-    if (Firebase.apps.isNotEmpty) {
-      try {
-        await FirebaseFirestore.instance.collection('users').doc(profile.uid).set(profile.toJson());
-      } catch (e) {
-        debugPrint("Cloud profile save failed: $e");
-      }
-    }
   }
 
   UserProfile? getUserProfile() {
     final box = Hive.box(_userBoxName);
     final data = box.get('current_user');
     if (data != null) {
-      return UserProfile.fromJson(jsonDecode(data));
+      try {
+        return UserProfile.fromJson(jsonDecode(data));
+      } catch (e) {
+        debugPrint("Error parsing user profile: $e");
+      }
     }
     return null;
   }
 
-  // --- Journal (Local) ---
-  
+  // --- Journal ---
   Future<void> saveMemoryLocally(Memory memory) async {
     final box = Hive.box(_memoriesBoxName);
     await box.put(memory.id, jsonEncode(memory.toJson()));
   }
 
   List<Memory> getLocalMemories() {
-    final box = Hive.box(_memoriesBoxName);
-    return box.values
-        .map((m) => Memory.fromJson(jsonDecode(m)))
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
+    try {
+      final box = Hive.box(_memoriesBoxName);
+      final memories = box.values
+          .map((m) => Memory.fromJson(jsonDecode(m as String)))
+          .toList();
+      memories.sort((a, b) => b.date.compareTo(a.date));
+      return memories;
+    } catch (e) {
+      debugPrint("Error retrieving local memories: $e");
+      return [];
+    }
   }
 
   Future<void> deleteLocalMemory(String id) async {
@@ -57,106 +132,47 @@ class StorageService {
     await box.delete(id);
   }
 
-  // --- Community (Firebase + Local Cache) ---
-
-  Future<void> shareToCommunity(Memory memory, File? file) async {
+  // --- Community ---
+  Future<void> shareToCommunity(Memory memory, dynamic file) async {
     final cacheBox = Hive.box(_communityCacheBoxName);
     await cacheBox.put(memory.id, jsonEncode(memory.toJson()));
-
-    if (Firebase.apps.isNotEmpty) {
-      try {
-        if (file != null && await file.length() > _maxFirebaseSize) {
-          throw Exception("File too large for cloud sharing.");
-        }
-        await FirebaseFirestore.instance.collection('community_posts').doc(memory.id).set(memory.toJson());
-      } catch (e) {
-        debugPrint("Cloud share failed: $e");
-      }
-    }
   }
 
   Future<void> updateReaction(String memoryId, int newCount) async {
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('community_posts').doc(memoryId).update({
-          'reactionCount': newCount,
-        });
-      }
-    } catch (e) {
-      debugPrint("Update reaction failed: $e");
-    }
-    
     final box = Hive.box(_communityCacheBoxName);
     final data = box.get(memoryId);
     if (data != null) {
-      final memory = Memory.fromJson(jsonDecode(data));
+      final memory = Memory.fromJson(jsonDecode(data as String));
       memory.reactionCount = newCount;
       await box.put(memoryId, jsonEncode(memory.toJson()));
     }
   }
 
   Future<void> addCommunityComment(String memoryId, Comment comment) async {
-    try {
-      if (Firebase.apps.isNotEmpty) {
-        await FirebaseFirestore.instance.collection('community_posts').doc(memoryId).update({
-          'comments': FieldValue.arrayUnion([comment.toJson()]),
-        });
-      }
-    } catch (e) {
-      debugPrint("Add comment failed: $e");
-    }
-
     final box = Hive.box(_communityCacheBoxName);
     final data = box.get(memoryId);
     if (data != null) {
-      final memory = Memory.fromJson(jsonDecode(data));
+      final memory = Memory.fromJson(jsonDecode(data as String));
       memory.comments.add(comment);
       await box.put(memoryId, jsonEncode(memory.toJson()));
     }
   }
 
   List<Memory> getCachedCommunityPosts() {
-    final box = Hive.box(_communityCacheBoxName);
-    return box.values
-        .map((m) => Memory.fromJson(jsonDecode(m)))
-        .toList()
-      ..sort((a, b) => b.date.compareTo(a.date));
-  }
-
-  Stream<List<Memory>> getCommunityPosts() {
-    if (Firebase.apps.isEmpty) {
-      return Stream.value(getCachedCommunityPosts());
-    }
-
-    return FirebaseFirestore.instance
-        .collection('community_posts')
-        .orderBy('date', descending: true)
-        .limit(30)
-        .snapshots()
-        .map((snapshot) {
-          final posts = snapshot.docs.map((doc) => Memory.fromJson(doc.data())).toList();
-          _updateCache(posts);
-          return posts;
-        })
-        .handleError((error) {
-          debugPrint("Firestore Stream Error: $error");
-          return getCachedCommunityPosts();
-        });
-  }
-
-  void _updateCache(List<Memory> posts) async {
     try {
       final box = Hive.box(_communityCacheBoxName);
-      final Map<String, dynamic> data = {};
-      final recentPosts = posts.length > 20 ? posts.sublist(0, 20) : posts;
-      for (var post in recentPosts) {
-        data[post.id] = jsonEncode(post.toJson());
-      }
-      if (data.isNotEmpty) {
-        await box.putAll(data);
-      }
+      final posts = box.values
+          .map((m) => Memory.fromJson(jsonDecode(m as String)))
+          .toList();
+      posts.sort((a, b) => b.date.compareTo(a.date));
+      return posts;
     } catch (e) {
-      debugPrint("Cache update error: $e");
+      debugPrint("Error retrieving community posts: $e");
+      return [];
     }
+  }
+
+  Future<List<Memory>> getCommunityMemories() async {
+    return getCachedCommunityPosts();
   }
 }

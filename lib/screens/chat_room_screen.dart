@@ -24,7 +24,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
 
   void _sendMessage() {
     if (_messageController.text.trim().isNotEmpty) {
-      _chatService.sendMessage(widget.chatRoomId, _messageController.text.trim());
+      _chatService.sendMessage(
+          widget.chatRoomId, _messageController.text.trim());
       _messageController.clear();
       _scrollController.animateTo(
         0.0,
@@ -45,7 +46,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
               backgroundImage: widget.otherUser.photoUrl != null
                   ? NetworkImage(widget.otherUser.photoUrl!)
                   : null,
-              child: widget.otherUser.photoUrl == null ? const Icon(Icons.person) : null,
+              child: widget.otherUser.photoUrl == null
+                  ? const Icon(Icons.person)
+                  : null,
             ),
             const SizedBox(width: 10),
             Text(widget.otherUser.displayName ?? 'User'),
@@ -58,8 +61,9 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
             child: StreamBuilder<List<ChatMessage>>(
               stream: _chatService.getMessages(widget.chatRoomId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
-                
+                if (!snapshot.hasData)
+                  return const Center(child: CircularProgressIndicator());
+
                 final messages = snapshot.data!;
                 return ListView.builder(
                   controller: _scrollController,
@@ -70,15 +74,24 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                     final isMe = message.senderId != widget.otherUser.uid;
 
                     return Align(
-                      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+                      alignment:
+                          isMe ? Alignment.centerRight : Alignment.centerLeft,
                       child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 10),
                         decoration: BoxDecoration(
-                          color: isMe ? Theme.of(context).colorScheme.primary : Colors.grey[300],
+                          color: isMe
+                              ? Theme.of(context).colorScheme.primary
+                              : Colors.grey[300],
                           borderRadius: BorderRadius.circular(20).copyWith(
-                            bottomRight: isMe ? const Radius.circular(0) : const Radius.circular(20),
-                            bottomLeft: isMe ? const Radius.circular(20) : const Radius.circular(0),
+                            bottomRight: isMe
+                                ? const Radius.circular(0)
+                                : const Radius.circular(20),
+                            bottomLeft: isMe
+                                ? const Radius.circular(20)
+                                : const Radius.circular(0),
                           ),
                         ),
                         child: Text(
@@ -106,7 +119,8 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(25),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 20),
                     ),
                     onSubmitted: (_) => _sendMessage(),
                   ),

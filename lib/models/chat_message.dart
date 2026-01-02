@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-
 enum MessageType { text, image, file }
 
 class ChatMessage {
@@ -18,19 +16,21 @@ class ChatMessage {
   });
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'senderId': senderId,
     'content': content,
-    'timestamp': Timestamp.fromDate(timestamp),
+    'timestamp': timestamp.toIso8601String(),
     'type': type.index,
   };
 
-  factory ChatMessage.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> json = doc.data() as Map<String, dynamic>;
+  factory ChatMessage.fromJson(Map<String, dynamic> json, String id) {
     return ChatMessage(
-      id: doc.id,
-      senderId: json['senderId'],
-      content: json['content'],
-      timestamp: (json['timestamp'] as Timestamp).toDate(),
+      id: id,
+      senderId: json['senderId'] ?? '',
+      content: json['content'] ?? '',
+      timestamp: json['timestamp'] != null 
+          ? DateTime.tryParse(json['timestamp']) ?? DateTime.now()
+          : DateTime.now(),
       type: MessageType.values[json['type'] ?? 0],
     );
   }
@@ -49,14 +49,13 @@ class ChatRoom {
     this.lastMessageTime,
   });
 
-  factory ChatRoom.fromFirestore(DocumentSnapshot doc) {
-    Map<String, dynamic> json = doc.data() as Map<String, dynamic>;
+  factory ChatRoom.fromJson(Map<String, dynamic> json, String id) {
     return ChatRoom(
-      id: doc.id,
+      id: id,
       participants: List<String>.from(json['participants'] ?? []),
       lastMessage: json['lastMessage'],
-      lastMessageTime: json['lastMessageTime'] != null 
-          ? (json['lastMessageTime'] as Timestamp).toDate() 
+      lastMessageTime: json['lastMessageTime'] != null
+          ? DateTime.tryParse(json['lastMessageTime'])
           : null,
     );
   }
