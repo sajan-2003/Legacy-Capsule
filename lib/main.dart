@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/front_page.dart';
@@ -8,19 +9,21 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // 1. Initialize Local Database (Hive)
+    // Initialize Local Database (Hive)
     await Hive.initFlutter();
     await Hive.openBox('memories');
     await Hive.openBox('community_cache');
     await Hive.openBox('user_profile');
+    await Hive.openBox('future_plans');
+    await Hive.openBox('calendar_colors');
+    await Hive.openBox('achievements'); // New box for achievements
 
     final storageService = StorageService();
     
-    // 2. Clear previous test data to ensure a clean start
-    // Note: You can comment this line out after the first run to persist new data
-    await storageService.clearAllData();
+    // Clear previous test data to ensure a clean start
+    // await storageService.clearAllData();
 
-    // 3. Initialize Demo Data
+    // Initialize Demo Data
     await storageService.initializeDemoData();
     
   } catch (e) {

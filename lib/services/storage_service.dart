@@ -8,6 +8,9 @@ class StorageService {
   static const String _memoriesBoxName = 'memories';
   static const String _communityCacheBoxName = 'community_cache';
   static const String _userBoxName = 'user_profile';
+  static const String _plansBoxName = 'future_plans';
+  static const String _colorsBoxName = 'calendar_colors';
+  static const String _achievementsBoxName = 'achievements';
 
   // --- Clear Data ---
   Future<void> clearAllData() async {
@@ -15,10 +18,56 @@ class StorageService {
       await Hive.box(_memoriesBoxName).clear();
       await Hive.box(_communityCacheBoxName).clear();
       await Hive.box(_userBoxName).clear();
+      await Hive.box(_plansBoxName).clear();
+      await Hive.box(_colorsBoxName).clear();
+      await Hive.box(_achievementsBoxName).clear();
       debugPrint("All local boxes cleared.");
     } catch (e) {
       debugPrint("Error clearing local data: $e");
     }
+  }
+
+  // --- Calendar Color Marking ---
+  Future<void> saveCalendarColor(DateTime date, int colorValue) async {
+    final box = Hive.box(_colorsBoxName);
+    final key = "${date.year}-${date.month}-${date.day}";
+    await box.put(key, colorValue);
+  }
+
+  int? getCalendarColor(DateTime date) {
+    final box = Hive.box(_colorsBoxName);
+    final key = "${date.year}-${date.month}-${date.day}";
+    return box.get(key) as int?;
+  }
+
+  // --- Future Plans (Vision Board) ---
+  Future<void> savePlan(DateTime date, String note) async {
+    final box = Hive.box(_plansBoxName);
+    final key = "${date.year}-${date.month}-${date.day}";
+    await box.put(key, note);
+  }
+
+  String getPlan(DateTime date) {
+    final box = Hive.box(_plansBoxName);
+    final key = "${date.year}-${date.month}-${date.day}";
+    return box.get(key, defaultValue: "") as String;
+  }
+
+  // --- Achievement Tracking ---
+  Future<void> saveAchievement(DateTime date, bool? achieved) async {
+    final box = Hive.box(_achievementsBoxName);
+    final key = "${date.year}-${date.month}-${date.day}";
+    if (achieved == null) {
+      await box.delete(key);
+    } else {
+      await box.put(key, achieved);
+    }
+  }
+
+  bool? getAchievement(DateTime date) {
+    final box = Hive.box(_achievementsBoxName);
+    final key = "${date.year}-${date.month}-${date.day}";
+    return box.get(key) as bool?;
   }
 
   // --- Demo Data Injection ---
@@ -26,7 +75,6 @@ class StorageService {
     final memoriesBox = Hive.box(_memoriesBoxName);
     final communityBox = Hive.box(_communityCacheBoxName);
 
-    // Inject Journal Memories if empty
     if (memoriesBox.isEmpty) {
       debugPrint("Injecting Journal Demo Data...");
       final demoJournal = [
@@ -53,7 +101,6 @@ class StorageService {
       }
     }
 
-    // Inject Community Posts if empty
     if (communityBox.isEmpty) {
       debugPrint("Injecting Community Demo Data...");
       final demoCommunity = [
@@ -64,7 +111,7 @@ class StorageService {
           preview: "Best way to spend a Saturday morning.",
           type: MemoryType.photo,
           content: "Exploring some new Flutter features while enjoying a flat white.",
-          imageUrls: ["https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?w=800&q=80"],
+          imageUrls: ["https://images.unsplash.com/photo-1495474472287-4bd374c3f58b?w=800&q=80"],
           authorId: 'user_alex',
           authorName: 'Alex Rivers',
           reactionCount: 15,

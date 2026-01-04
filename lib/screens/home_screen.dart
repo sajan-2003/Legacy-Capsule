@@ -42,6 +42,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   DateTime? _selectedSearchDate;
   DateTime _focusedDay = DateTime.now();
   DateTime? _selectedDay;
+  bool _isSaving = false;
   
   final StorageService _storageService = StorageService();
   List<Memory> _memories = [];
@@ -63,6 +64,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _tabController = TabController(length: 2, vsync: this);
     _selectedDay = _focusedDay;
     _loadMemories();
+    _loadInitialPlan();
   }
 
   Future<void> _loadMemories() async {
@@ -73,6 +75,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       });
     } catch (e) {
       debugPrint("Error loading memories: $e");
+    }
+  }
+
+  void _loadInitialPlan() {
+    if (_selectedDay != null) {
+      _noteController.text = _storageService.getPlan(_selectedDay!);
     }
   }
 
@@ -198,11 +206,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           index: _bottomNavIndex,
           children: pages,
         ),
-        bottomNavigationBar: Container(
-          height: 72, 
-          decoration: BoxDecoration(
-            border: Border(top: BorderSide(color: theme.dividerColor, width: 0.5)),
-          ),
+        bottomNavigationBar: SizedBox(
+          height: 92,
           child: BottomNavigationBar(
             currentIndex: _bottomNavIndex,
             onTap: (index) {
@@ -241,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1),
                   ),
                   child: CircleAvatar(
-                    radius: 18,
+                    radius: 16,
                     backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
                     backgroundImage: const NetworkImage(hackerPhoto),
                   ),
@@ -249,8 +254,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 label: 'Profile',
               ),
               const BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline, size: 24),
-                activeIcon: Icon(Icons.chat_bubble, size: 24),
+                icon: Icon(Icons.chat_bubble_outline, size: 22),
+                activeIcon: Icon(Icons.chat_bubble, size: 22),
                 label: 'Chat',
               ),
               const BottomNavigationBarItem(
@@ -451,130 +456,208 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       Colors.yellowAccent,
     ];
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isDark ? [Colors.indigo.shade900, Colors.black] : [Colors.indigo.shade50, Colors.white],
-                begin: Alignment.topLeft, end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: Colors.blueAccent.withValues(alpha: 0.1), blurRadius: 30)],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildLuminousStat("Day", DateFormat('EEE').format(_selectedDay!), luminousColors[0], isDark),
-                _buildLuminousStat("Month", DateFormat('MMM').format(_selectedDay!), luminousColors[1], isDark),
-                _buildLuminousStat("Year", DateFormat('yyyy').format(_selectedDay!), luminousColors[2], isDark),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.1)),
-              boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, 10))
-              ],
-            ),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(luminousColors.length, (index) => Container(
-                    width: 14, height: 4, margin: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: luminousColors[index],
-                      borderRadius: BorderRadius.circular(2),
-                      boxShadow: [BoxShadow(color: luminousColors[index], blurRadius: 6)],
-                    ),
-                  )),
-                ),
-                const SizedBox(height: 12),
-                Theme(
-                  data: theme.copyWith(
-                    colorScheme: theme.colorScheme.copyWith(
-                      primary: theme.colorScheme.primary,
-                      onPrimary: Colors.white,
-                    ),
-                  ),
-                  child: CalendarDatePicker(
-                    initialDate: _focusedDay,
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                    onDateChanged: (date) => setState(() { _selectedDay = date; _focusedDay = date; }),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
+    final currentMarkColor = Color(_storageService.getCalendarColor(_selectedDay!) ?? luminousColors[1].toARGB32());
 
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFFEFCE8),
-              borderRadius: BorderRadius.circular(28),
-              border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
-              boxShadow: [BoxShadow(color: theme.colorScheme.primary.withValues(alpha: 0.05), blurRadius: 15)],
+    return Container(
+      decoration: isDark ? const BoxDecoration(
+        color: Color(0xFF030213),
+        image: DecorationImage(
+          image: NetworkImage("https://www.transparenttextures.com/patterns/grid-me.png"),
+          repeat: ImageRepeat.repeat,
+          opacity: 0.05,
+        ),
+      ) : null,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            // Premium Luminous Stat Header
+            _buildPremiumHeader(luminousColors, isDark),
+            const SizedBox(height: 20),
+            
+            // MODERN CALENDAR CONTAINER
+            Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF030213).withValues(alpha: 0.8) : Colors.white,
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withValues(alpha: 0.3), blurRadius: 40, offset: const Offset(0, 15))
+                ],
+              ),
+              child: Column(
+                children: [
+                  // Color Picker Section with magnetic feel
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: isDark ? Colors.white.withValues(alpha: 0.02) : Colors.black.withValues(alpha: 0.02),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        ...List.generate(luminousColors.length, (index) => GestureDetector(
+                          onTap: () {
+                            _storageService.saveCalendarColor(_selectedDay!, luminousColors[index].toARGB32());
+                            setState(() {}); 
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.elasticOut,
+                            width: _storageService.getCalendarColor(_selectedDay!) == luminousColors[index].toARGB32() ? 32 : 24,
+                            height: _storageService.getCalendarColor(_selectedDay!) == luminousColors[index].toARGB32() ? 32 : 24,
+                            margin: const EdgeInsets.symmetric(horizontal: 8),
+                            decoration: BoxDecoration(
+                              color: luminousColors[index],
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: _storageService.getCalendarColor(_selectedDay!) == luminousColors[index].toARGB32()
+                                  ? Colors.white : Colors.transparent,
+                                width: 2,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: luminousColors[index].withValues(alpha: 0.6), 
+                                  blurRadius: _storageService.getCalendarColor(_selectedDay!) == luminousColors[index].toARGB32() ? 15 : 5,
+                                  spreadRadius: _storageService.getCalendarColor(_selectedDay!) == luminousColors[index].toARGB32() ? 2 : 0,
+                                )
+                              ],
+                            ),
+                          ),
+                        )),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          icon: Icon(Icons.refresh, size: 20, color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+                          onPressed: () {
+                            _storageService.saveCalendarColor(_selectedDay!, 0);
+                            setState(() {});
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  _MarkableCalendar(
+                    storageService: _storageService,
+                    selectedDay: _selectedDay!,
+                    onDateChanged: (date) {
+                      setState(() { 
+                        _selectedDay = date; 
+                        _focusedDay = date;
+                        _noteController.text = _storageService.getPlan(date);
+                      });
+                    },
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(color: luminousColors[1].withValues(alpha: 0.1), shape: BoxShape.circle),
-                      child: Icon(Icons.auto_awesome, color: luminousColors[1], size: 20),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("Vision Board", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
-                          Text(DateFormat('MMMM d, yyyy').format(_selectedDay!), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
-                        ],
+            const SizedBox(height: 24),
+
+            // Vision Board - Immersive Dashboard
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF030213).withValues(alpha: 0.8) : const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: currentMarkColor.withValues(alpha: 0.2), width: 1.5),
+                boxShadow: [
+                  BoxShadow(color: currentMarkColor.withValues(alpha: 0.05), blurRadius: 30, spreadRadius: 5)
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      _AnimatedGlowIcon(color: currentMarkColor),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Vision Board", style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900, fontSize: 20, letterSpacing: 0.5)),
+                            Text(DateFormat('EEEE, MMMM d').format(_selectedDay!), style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontWeight: FontWeight.w600)),
+                          ],
+                        ),
                       ),
+                    ],
+                  ),
+                  const SizedBox(height: 32),
+                  TextField(
+                    controller: _noteController,
+                    maxLines: 5,
+                    style: const TextStyle(fontSize: 16, height: 1.6, fontWeight: FontWeight.w500),
+                    onChanged: (val) {
+                      _storageService.savePlan(_selectedDay!, val);
+                      setState(() => _isSaving = true);
+                      Timer(const Duration(seconds: 1), () => setState(() => _isSaving = false));
+                    },
+                    decoration: InputDecoration(
+                      hintText: "Whisper your future visions here...",
+                      hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.2), fontStyle: FontStyle.italic),
+                      filled: true,
+                      fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                      contentPadding: const EdgeInsets.all(24),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                Stack(
-                  children: [
-                    TextField(
-                      controller: _noteController,
-                      maxLines: 5,
-                      style: const TextStyle(fontSize: 15, height: 1.5),
-                      decoration: InputDecoration(
-                        hintText: "What are your future visions...",
-                        hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
-                        filled: true,
-                        fillColor: isDark ? Colors.white.withValues(alpha: 0.03) : Colors.black.withValues(alpha: 0.02),
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                  if (_isSaving)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8, left: 16),
+                      child: Text("Saving changes...", style: TextStyle(fontSize: 10, color: currentMarkColor.withValues(alpha: 0.5))),
+                    ),
+                  const SizedBox(height: 28),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ModernAchievementButton(
+                          label: "Achieved",
+                          icon: Icons.auto_awesome,
+                          color: Colors.greenAccent,
+                          isActive: _storageService.getAchievement(_selectedDay!) == true,
+                          onPressed: () => _markAchievement(true),
+                        ),
                       ),
-                    ),
-                    Positioned(bottom: 8, right: 8, child: Icon(Icons.edit_outlined, size: 18, color: theme.colorScheme.primary.withValues(alpha: 0.3))),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                _buildPlanFeature(Icons.lock_clock, "Memories Locked", "2 Capsules waiting", luminousColors[0]),
-                const Divider(height: 24, thickness: 0.5),
-                _buildPlanFeature(Icons.alarm, "Daily Intent", "Stay mindful and focused", luminousColors[3]),
-              ],
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: _ModernAchievementButton(
+                          label: "Missed",
+                          icon: Icons.blur_on,
+                          color: Colors.redAccent,
+                          isActive: _storageService.getAchievement(_selectedDay!) == false,
+                          onPressed: () => _markAchievement(false),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  _buildSavingButton(theme, currentMarkColor),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 30),
+            const SizedBox(height: 40),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumHeader(List<Color> colors, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF030213) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 20)],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          _buildLuminousStat("Day", DateFormat('EEE').format(_selectedDay!), colors[0], isDark),
+          Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.05)),
+          _buildLuminousStat("Month", DateFormat('MMM').format(_selectedDay!), colors[1], isDark),
+          Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.05)),
+          _buildLuminousStat("Year", DateFormat('yyyy').format(_selectedDay!), colors[2], isDark),
         ],
       ),
     );
@@ -583,42 +666,299 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildLuminousStat(String label, String value, Color color, bool isDark) {
     return Column(
       children: [
-        Text(label.toUpperCase(), style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isDark ? Colors.white38 : Colors.black38, letterSpacing: 1)),
+        Text(label.toUpperCase(), style: TextStyle(color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
         const SizedBox(height: 4),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: color.withValues(alpha: 0.3)),
-          ),
-          child: Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: color, shadows: [Shadow(color: color, blurRadius: 10)])),
-        ),
+        Text(value, style: TextStyle(color: color, fontSize: 18, fontWeight: FontWeight.w900, shadows: [Shadow(color: color.withValues(alpha: 0.5), blurRadius: 10)])),
       ],
     );
   }
 
-  Widget _buildPlanFeature(IconData icon, String title, String subtitle, Color color) {
-    final theme = Theme.of(context);
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: color),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-              Text(subtitle, style: theme.textTheme.bodySmall?.copyWith(fontSize: 11, color: theme.colorScheme.onSurface.withValues(alpha: 0.5))),
+  Widget _buildSavingButton(ThemeData theme, Color color) {
+    return Container(
+      width: double.infinity,
+      height: 56,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        gradient: LinearGradient(colors: [color.withValues(alpha: 0.8), color]),
+        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 15, offset: const Offset(0, 5))],
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          _storageService.savePlan(_selectedDay!, _noteController.text);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text("Plan sealed in your legacy timeline."),
+              backgroundColor: color.withValues(alpha: 0.9),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.transparent,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: const Text("Seal Vision", style: TextStyle(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
+      ),
+    );
+  }
+
+  void _markAchievement(bool success) async {
+    await _storageService.saveAchievement(_selectedDay!, success);
+    if (!mounted) return;
+    setState(() {});
+    final status = success ? "Legacy Milestone Achieved! 🎉" : "The path is long. Keep moving forward. 💪";
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(status, style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: success ? const Color(0xFF064E3B) : const Color(0xFF7F1D1D),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+    );
+  }
+}
+
+class _AnimatedGlowIcon extends StatelessWidget {
+  final Color color;
+  const _AnimatedGlowIcon({required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(seconds: 2),
+      builder: (context, value, child) {
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(color: color.withValues(alpha: 0.2 * value), blurRadius: 15 * value, spreadRadius: 2 * value)
             ],
           ),
+          child: Icon(Icons.auto_awesome, color: color, size: 24),
+        );
+      },
+    );
+  }
+}
+
+class _ModernAchievementButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final bool isActive;
+  final VoidCallback onPressed;
+
+  const _ModernAchievementButton({required this.label, required this.icon, required this.color, required this.isActive, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onPressed,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: isActive ? color : color.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: isActive ? Colors.white : color.withValues(alpha: 0.2), width: 1.5),
+          boxShadow: isActive ? [BoxShadow(color: color.withValues(alpha: 0.4), blurRadius: 20)] : [],
         ),
-        Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.1), shape: BoxShape.circle),
-          child: Icon(Icons.chevron_right, size: 14, color: color),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: isActive ? Colors.black : color),
+            const SizedBox(width: 8),
+            Text(label, style: TextStyle(color: isActive ? Colors.black : color, fontWeight: FontWeight.w900, fontSize: 14)),
+          ],
         ),
-      ],
+      ),
+    );
+  }
+}
+
+class _MarkableCalendar extends StatefulWidget {
+  final StorageService storageService;
+  final DateTime selectedDay;
+  final Function(DateTime) onDateChanged;
+
+  const _MarkableCalendar({
+    required this.storageService,
+    required this.selectedDay,
+    required this.onDateChanged,
+  });
+
+  @override
+  State<_MarkableCalendar> createState() => _MarkableCalendarState();
+}
+
+class _MarkableCalendarState extends State<_MarkableCalendar> {
+  late DateTime _currentMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentMonth = DateTime(widget.selectedDay.year, widget.selectedDay.month);
+  }
+
+  bool isSameDay(DateTime a, DateTime b) => a.year == b.year && a.month == b.month && a.day == b.day;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final daysInMonth = DateTime(_currentMonth.year, _currentMonth.month + 1, 0).day;
+    final firstDayWeekday = DateTime(_currentMonth.year, _currentMonth.month, 1).weekday;
+    final firstDayOffset = firstDayWeekday % 7; 
+
+    final weekdays = ["S", "M", "T", "W", "T", "F", "S"];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_left_rounded, size: 28),
+                onPressed: () => setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month - 1)),
+              ),
+              Text(
+                DateFormat('MMMM yyyy').format(_currentMonth).toUpperCase(),
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, letterSpacing: 4),
+              ),
+              IconButton(
+                icon: const Icon(Icons.keyboard_arrow_right_rounded, size: 28),
+                onPressed: () => setState(() => _currentMonth = DateTime(_currentMonth.year, _currentMonth.month + 1)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: weekdays.map((w) => Text(w, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: isDark ? Colors.white24 : Colors.black26))).toList(),
+          ),
+          const SizedBox(height: 16),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.zero,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 7, mainAxisSpacing: 10, crossAxisSpacing: 10),
+            itemCount: daysInMonth + firstDayOffset,
+            itemBuilder: (context, index) {
+              if (index < firstDayOffset) return const SizedBox();
+              final day = index - firstDayOffset + 1;
+              final date = DateTime(_currentMonth.year, _currentMonth.month, day);
+              final isSelected = isSameDay(date, widget.selectedDay);
+              final isToday = isSameDay(date, DateTime.now());
+              
+              final colorValue = widget.storageService.getCalendarColor(date);
+              final markedColor = colorValue != null && colorValue != 0 ? Color(colorValue) : null;
+              final achievement = widget.storageService.getAchievement(date);
+
+              return GestureDetector(
+                onTap: () => widget.onDateChanged(date),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: isSelected 
+                      ? (markedColor ?? theme.colorScheme.primary).withValues(alpha: 0.2)
+                      : (markedColor != null ? markedColor.withValues(alpha: 0.05) : Colors.transparent),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSelected 
+                        ? (markedColor ?? theme.colorScheme.primary).withValues(alpha: 0.6)
+                        : (markedColor != null ? markedColor.withValues(alpha: 0.2) : Colors.transparent),
+                      width: 1.5
+                    ),
+                  ),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      if (markedColor != null)
+                        _BreathingGlow(color: markedColor),
+                      
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            "$day",
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: isSelected 
+                                ? (markedColor ?? (isDark ? Colors.white : Colors.black))
+                                : (markedColor ?? (isDark ? Colors.white70 : Colors.black87)),
+                              fontWeight: isSelected || markedColor != null || isToday ? FontWeight.w900 : FontWeight.w400,
+                            ),
+                          ),
+                          if (achievement != null)
+                            Container(
+                              margin: const EdgeInsets.only(top: 2),
+                              width: 4, height: 4,
+                              decoration: BoxDecoration(
+                                color: achievement ? Colors.amber : Colors.redAccent,
+                                shape: BoxShape.circle,
+                                boxShadow: [BoxShadow(color: achievement ? Colors.amber : Colors.redAccent, blurRadius: 4)],
+                              ),
+                            ),
+                        ],
+                      ),
+                      if (isToday && !isSelected)
+                        Positioned(
+                          top: 4, right: 4,
+                          child: Container(width: 4, height: 4, decoration: BoxDecoration(color: theme.colorScheme.primary, shape: BoxShape.circle)),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BreathingGlow extends StatefulWidget {
+  final Color color;
+  const _BreathingGlow({required this.color});
+
+  @override
+  State<_BreathingGlow> createState() => _BreathingGlowState();
+}
+
+class _BreathingGlowState extends State<_BreathingGlow> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(vsync: this, duration: const Duration(seconds: 2))..repeat(reverse: true);
+    _animation = Tween<double>(begin: 2.0, end: 10.0).animate(_controller);
+  }
+
+  @override
+  void dispose() { _controller.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        return Container(
+          margin: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: widget.color.withValues(alpha: 0.3), blurRadius: _animation.value, spreadRadius: 1)],
+          ),
+        );
+      },
     );
   }
 }
