@@ -8,6 +8,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/memory.dart';
 import '../services/storage_service.dart';
+import '../widgets/skeleton_loader.dart';
 import 'add_memory_screen.dart';
 import 'profile_view_screen.dart';
 import 'profile_screen.dart';
@@ -37,6 +38,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   final ImagePicker _picker = ImagePicker();
   bool _isSearching = false;
   bool _showSearchHeader = false;
+  bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
   DateTime? _selectedSearchDate;
@@ -63,8 +65,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _selectedDay = _focusedDay;
-    _loadMemories();
+    _initData();
+  }
+
+  Future<void> _initData() async {
+    setState(() => _isLoading = true);
+    await Future.delayed(const Duration(milliseconds: 1200));
+    await _loadMemories();
     _loadInitialPlan();
+    if (mounted) setState(() => _isLoading = false);
   }
 
   Future<void> _loadMemories() async {
@@ -187,12 +196,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    const hackerPhoto = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80";
 
     final List<Widget> pages = [
       _buildJournalContent(),
       CommunityScreen(isSearching: _isSearching, searchController: _searchController, onThemeChanged: widget.onThemeChanged),
-      const ProfileViewScreen(),
       const ChatListScreen(),
       TimeLockScreen(isSearching: _isSearching, searchController: _searchController, onThemeChanged: widget.onThemeChanged),
     ];
@@ -206,64 +213,63 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           index: _bottomNavIndex,
           children: pages,
         ),
-        bottomNavigationBar: SizedBox(
-          height: 92,
-          child: BottomNavigationBar(
-            currentIndex: _bottomNavIndex,
-            onTap: (index) {
-              setState(() {
-                _bottomNavIndex = index;
-                _isSearching = false;
-                _showSearchHeader = false;
-                _searchController.clear();
-                _selectedSearchDate = null;
-              });
-            },
-            backgroundColor: theme.colorScheme.surface,
-            selectedItemColor: theme.colorScheme.primary,
-            unselectedItemColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
-            showSelectedLabels: true,
-            showUnselectedLabels: true,
-            selectedFontSize: 10,
-            unselectedFontSize: 10,
-            type: BottomNavigationBarType.fixed,
-            items: [
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.auto_stories_outlined, size: 20),
-                activeIcon: Icon(Icons.auto_stories, size: 20),
-                label: 'Journal',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.public_outlined, size: 24),
-                activeIcon: Icon(Icons.public, size: 24),
-                label: 'Social',
-              ),
-              BottomNavigationBarItem(
-                icon: Container(
-                  padding: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1),
-                  ),
-                  child: CircleAvatar(
-                    radius: 16,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
-                    backgroundImage: const NetworkImage(hackerPhoto),
-                  ),
-                ),
-                label: 'Profile',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline, size: 22),
-                activeIcon: Icon(Icons.chat_bubble, size: 22),
-                label: 'Chat',
-              ),
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.lock_clock_outlined, size: 20),
-                activeIcon: Icon(Icons.lock_clock, size: 20),
-                label: 'Capsule',
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -5),
               ),
             ],
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              height: 72,
+              child: BottomNavigationBar(
+                currentIndex: _bottomNavIndex,
+                onTap: (index) {
+                  setState(() {
+                    _bottomNavIndex = index;
+                    _isSearching = false;
+                    _showSearchHeader = false;
+                    _searchController.clear();
+                    _selectedSearchDate = null;
+                  });
+                },
+                elevation: 0,
+                backgroundColor: Colors.transparent,
+                selectedItemColor: theme.colorScheme.primary,
+                unselectedItemColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
+                showSelectedLabels: true,
+                showUnselectedLabels: true,
+                selectedFontSize: 12,
+                unselectedFontSize: 12,
+                type: BottomNavigationBarType.fixed,
+                items: [
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.auto_stories_outlined, size: 20),
+                    activeIcon: Icon(Icons.auto_stories, size: 20),
+                    label: 'Journal',
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.public_outlined, size: 24),
+                    activeIcon: Icon(Icons.public, size: 24),
+                    label: 'Social',
+                  ),
+                  const BottomNavigationBarItem(
+                    icon: Icon(Icons.chat_bubble_outline, size: 22),
+                    activeIcon: Icon(Icons.chat_bubble, size: 22),
+                    label: 'Chat',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: _CapsuleIcon(isActive: _bottomNavIndex == 3),
+                    label: 'Capsule',
+                  ),
+                ],
+              ),
+            ),
           ),
         ),
         floatingActionButton: (_bottomNavIndex == 0 && MediaQuery.of(context).viewInsets.bottom == 0)
@@ -276,7 +282,6 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ),
                 );
               },
-              mini: true,
               backgroundColor: theme.colorScheme.primary,
               elevation: 4,
               child: const Icon(Icons.add, size: 24, color: Colors.white),
@@ -288,72 +293,106 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   Widget _buildJournalContent() {
     final theme = Theme.of(context);
+    const hackerPhoto = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=400&q=80";
 
     return Column(
       children: [
-        // Header
+        // Refined Premium Header Navigation
         Container(
           padding: EdgeInsets.only(
-            top: MediaQuery.of(context).padding.top + 12,
-            bottom: 12,
-            left: 20,
-            right: 12,
+            top: MediaQuery.of(context).padding.top + 10,
+            bottom: 10,
+            left: 16,
+            right: 8,
           ),
-          decoration: BoxDecoration(color: theme.colorScheme.surface),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: _showSearchHeader 
-                  ? TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      style: const TextStyle(fontSize: 16),
-                      decoration: InputDecoration(
-                        hintText: "Search memories...",
-                        border: InputBorder.none,
-                        suffixIcon: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.calendar_today, size: 18),
-                              onPressed: _selectSearchDate,
-                              tooltip: "Filter by date",
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.close, size: 18),
-                              onPressed: () => setState(() {
-                                _showSearchHeader = false;
-                                _isSearching = false;
-                                _searchController.clear();
-                                _selectedSearchDate = null;
-                              }),
-                            ),
-                          ],
-                        ),
-                      ),
-                      onChanged: (val) => setState(() => _isSearching = val.isNotEmpty || _selectedSearchDate != null),
-                    )
-                  : Text("Journal", style: theme.textTheme.titleLarge?.copyWith(fontSize: 24, fontWeight: FontWeight.bold)),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              Row(
-                children: [
-                  Container(
-                    width: 36,
-                    height: 36,
+            ],
+          ),
+          child: Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfileViewScreen())),
+                child: Hero(
+                  tag: 'profile_avatar_header',
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 1),
                     ),
-                    child: IconButton(
-                      icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.primary, size: 20),
-                      onPressed: _openCamera,
-                      padding: EdgeInsets.zero,
+                    child: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      backgroundImage: const NetworkImage(hackerPhoto),
                     ),
                   ),
-                  const SizedBox(width: 4),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 300),
+                  transitionBuilder: (child, animation) => FadeTransition(opacity: animation, child: child),
+                  child: _showSearchHeader 
+                    ? TextField(
+                        key: const ValueKey('searchField'),
+                        controller: _searchController,
+                        autofocus: true,
+                        style: const TextStyle(fontSize: 15),
+                        decoration: InputDecoration(
+                          hintText: "Search memories...",
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: theme.colorScheme.onSurface.withValues(alpha: 0.3)),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.close, size: 16),
+                            onPressed: () => setState(() {
+                              _showSearchHeader = false;
+                              _isSearching = false;
+                              _searchController.clear();
+                              _selectedSearchDate = null;
+                            }),
+                          ),
+                        ),
+                        onChanged: (val) => setState(() => _isSearching = val.isNotEmpty || _selectedSearchDate != null),
+                      )
+                    : Align(
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                          key: const ValueKey('titleText'),
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              "Journal", 
+                              style: theme.textTheme.titleLarge?.copyWith(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -0.5),
+                            ),
+                            Text(
+                              "Your life's vault",
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 10, fontWeight: FontWeight.w500),
+                            ),
+                          ],
+                        ),
+                      ),
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(Icons.camera_alt_outlined, color: theme.colorScheme.primary, size: 20),
+                    onPressed: _openCamera,
+                    tooltip: "Quick Capture",
+                    constraints: const BoxConstraints(),
+                    padding: const EdgeInsets.all(8),
+                  ),
                   PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert, color: theme.colorScheme.primary, size: 24),
+                    icon: Icon(Icons.more_vert, color: theme.colorScheme.onSurface.withValues(alpha: 0.4), size: 22),
                     padding: EdgeInsets.zero,
                     onSelected: (value) {
                       if (value == 'settings') {
@@ -367,10 +406,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       }
                     },
                     itemBuilder: (context) => [
-                      const PopupMenuItem(value: 'search', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 8), Text("Search")])),
-                      const PopupMenuItem(value: 'calendar', child: Row(children: [Icon(Icons.calendar_today, size: 18), SizedBox(width: 8), Text("Filter by Date")])),
-                      const PopupMenuItem(value: 'notifications', child: Row(children: [Icon(Icons.notifications_none, size: 18), SizedBox(width: 8), Text("Alerts")])),
-                      const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings_outlined, size: 18), SizedBox(width: 8), Text("Settings")])),
+                      const PopupMenuItem(value: 'search', child: Row(children: [Icon(Icons.search, size: 18), SizedBox(width: 12), Text("Search")])),
+                      const PopupMenuItem(value: 'calendar', child: Row(children: [Icon(Icons.calendar_today, size: 18), SizedBox(width: 12), Text("Date Filter")])),
+                      const PopupMenuItem(value: 'notifications', child: Row(children: [Icon(Icons.notifications_none, size: 18), SizedBox(width: 12), Text("Alerts")])),
+                      const PopupMenuItem(value: 'settings', child: Row(children: [Icon(Icons.settings_outlined, size: 18), SizedBox(width: 12), Text("Settings")])),
                     ],
                   ),
                 ],
@@ -387,11 +426,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             labelColor: theme.colorScheme.primary,
             unselectedLabelColor: theme.colorScheme.onSurface.withValues(alpha: 0.4),
             indicatorColor: theme.colorScheme.primary,
-            indicatorWeight: 2,
-            labelStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            indicatorWeight: 3,
+            indicatorSize: TabBarIndicatorSize.label,
+            labelStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             tabs: const [
-              Tab(height: 36, text: "My Memories"),
-              Tab(height: 36, text: "Future Plans"),
+              Tab(height: 48, text: "My Memories"),
+              Tab(height: 48, text: "Future Plans"),
             ],
           ),
         ),
@@ -411,37 +451,71 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _buildMemoriesTab(ThemeData theme, bool isDark) {
+    if (_isLoading) {
+      return ListView.builder(
+        padding: const EdgeInsets.all(16),
+        itemCount: 3,
+        itemBuilder: (context, index) => const MemorySkeleton(),
+      );
+    }
+
+    final filteredMemories = _memories.where((memory) {
+      final query = _searchController.text.toLowerCase();
+      bool matchesTitle = memory.title.toLowerCase().contains(query);
+      bool matchesDate = _selectedSearchDate == null || 
+          (memory.date.year == _selectedSearchDate!.year && 
+           memory.date.month == _selectedSearchDate!.month && 
+           memory.date.day == _selectedSearchDate!.day);
+      return _isSearching ? (_selectedSearchDate != null ? matchesDate : matchesTitle) : true;
+    }).toList();
+
     return RefreshIndicator(
       onRefresh: _loadMemories,
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
-        physics: const AlwaysScrollableScrollPhysics(),
+      child: filteredMemories.isEmpty && !_isSearching
+          ? _buildEmptyJournal(theme)
+          : ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                if (!_isSearching)
+                  MemoryCard(
+                    key: const ValueKey("demo_video_card"),
+                    memory: _demoVideo,
+                    onDelete: () {},
+                    onToggleLock: () {},
+                    onTap: () {},
+                    isDemo: true,
+                  ),
+                ...filteredMemories.map((memory) => MemoryCard(
+                  key: ValueKey(memory.id),
+                  memory: memory,
+                  onDelete: () => _deleteMemory(memory.id),
+                  onToggleLock: () => _toggleLock(memory.id),
+                  onTap: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => MemoryDetailScreen(memory: memory, onDelete: _deleteMemory, onToggleLock: _toggleLock)));
+                  },
+                )),
+              ],
+            ),
+    );
+  }
+
+  Widget _buildEmptyJournal(ThemeData theme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          MemoryCard(
-            key: const ValueKey("demo_video_card"),
-            memory: _demoVideo,
-            onDelete: () {},
-            onToggleLock: () {},
-            onTap: () {},
-            isDemo: true,
+          Icon(Icons.auto_awesome_outlined, size: 64, color: theme.colorScheme.onSurface.withValues(alpha: 0.1)),
+          const SizedBox(height: 24),
+          Text(
+            "Your legacy starts here",
+            style: theme.textTheme.titleMedium?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
           ),
-          ..._memories.where((memory) {
-            final query = _searchController.text.toLowerCase();
-            bool matchesTitle = memory.title.toLowerCase().contains(query);
-            bool matchesDate = _selectedSearchDate == null || 
-                (memory.date.year == _selectedSearchDate!.year && 
-                 memory.date.month == _selectedSearchDate!.month && 
-                 memory.date.day == _selectedSearchDate!.day);
-            return _isSearching ? (_selectedSearchDate != null ? matchesDate : matchesTitle) : true;
-          }).map((memory) => MemoryCard(
-            key: ValueKey(memory.id),
-            memory: memory,
-            onDelete: () => _deleteMemory(memory.id),
-            onToggleLock: () => _toggleLock(memory.id),
-            onTap: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => MemoryDetailScreen(memory: memory, onDelete: _deleteMemory, onToggleLock: _toggleLock)));
-            },
-          )),
+          const SizedBox(height: 8),
+          Text(
+            "Capture a moment or seal a vision.",
+            style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+          ),
         ],
       ),
     );
@@ -589,7 +663,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     style: const TextStyle(fontSize: 16, height: 1.6, fontWeight: FontWeight.w500),
                     onChanged: (val) {
                       _storageService.savePlan(_selectedDay!, val);
-                      setState(() => _isSaving = true);
+                      setState(() => _isSearching = true);
                       Timer(const Duration(seconds: 1), () => setState(() => _isSaving = false));
                     },
                     decoration: InputDecoration(
@@ -654,9 +728,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           _buildLuminousStat("Day", DateFormat('EEE').format(_selectedDay!), colors[0], isDark),
-          Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.05)),
+          Container(width: 1, height: 30, color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05)),
           _buildLuminousStat("Month", DateFormat('MMM').format(_selectedDay!), colors[1], isDark),
-          Container(width: 1, height: 30, color: Colors.white.withValues(alpha: 0.05)),
+          Container(width: 1, height: 30, color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.05)),
           _buildLuminousStat("Year", DateFormat('yyyy').format(_selectedDay!), colors[2], isDark),
         ],
       ),
@@ -715,6 +789,44 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
+    );
+  }
+}
+
+class _CapsuleIcon extends StatelessWidget {
+  final bool isActive;
+  const _CapsuleIcon({required this.isActive});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: isActive ? 1.0 : 0.0),
+      duration: const Duration(milliseconds: 300),
+      builder: (context, value, child) {
+        return Stack(
+          alignment: Alignment.center,
+          children: [
+            if (isActive)
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withValues(alpha: 0.1 * value),
+                  shape: BoxShape.circle,
+                ),
+              ),
+            Transform.scale(
+              scale: 1.0 + (0.1 * value),
+              child: Icon(
+                isActive ? Icons.lock_clock : Icons.lock_clock_outlined,
+                size: 20,
+                color: isActive ? theme.colorScheme.primary : theme.colorScheme.onSurface.withValues(alpha: 0.4),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -986,7 +1098,7 @@ class MemoryCard extends StatelessWidget {
     final hasMedia = memory.imageUrls.isNotEmpty && (memory.type == MemoryType.video || memory.type == MemoryType.photo);
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
@@ -1001,7 +1113,7 @@ class MemoryCard extends StatelessWidget {
             child: Row(
               children: [
                 if (isDemo) ...[
-                  CircleAvatar(radius: 12, backgroundColor: theme.colorScheme.primary.withAlpha(20), child: Icon(Icons.star, size: 14, color: theme.colorScheme.primary)),
+                  CircleAvatar(radius: 12, backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.1), child: Icon(Icons.star, size: 14, color: theme.colorScheme.primary)),
                   const SizedBox(width: 8),
                   Text("Legacy Community", style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.bold, color: theme.colorScheme.primary)),
                   const Spacer(),
@@ -1133,7 +1245,7 @@ class _FullControlVideoPlayerState extends State<_FullControlVideoPlayer> {
                     children: [
                       Align(alignment: Alignment.topRight, child: IconButton(icon: Icon(_controller.value.volume > 0 ? Icons.volume_up : Icons.volume_off, color: Colors.white, size: 18), onPressed: () { setState(() => _controller.setVolume(_controller.value.volume > 0 ? 0 : 1)); _startHideTimer(); })),
                       IconButton(iconSize: 40, icon: Icon(_controller.value.isPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled, color: Colors.white), onPressed: () { setState(() => _controller.value.isPlaying ? _controller.pause() : _controller.play()); _startHideTimer(); }),
-                      VideoProgressIndicator(_controller, allowScrubbing: true, colors: const VideoProgressColors(playedColor: Colors.blueAccent)),
+                      VideoProgressIndicator(_controller, allowScrubbing: true, colors: VideoProgressColors(playedColor: Theme.of(context).colorScheme.primary)),
                     ],
                   ),
                 ),
