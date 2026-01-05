@@ -27,12 +27,21 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
       _chatService.sendMessage(
           widget.chatRoomId, _messageController.text.trim());
       _messageController.clear();
-      _scrollController.animateTo(
-        0.0,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          0.0,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _messageController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   @override
@@ -59,19 +68,25 @@ class _ChatRoomScreenState extends State<ChatRoomScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<ChatMessage>>(
-              stream: _chatService.getMessages(widget.chatRoomId),
+              stream: _chatService.getMessagesStream(widget.chatRoomId),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
 
-                final messages = snapshot.data!;
+                final messages = List<ChatMessage>.from(snapshot.data!);
+                messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+
                 return ListView.builder(
                   controller: _scrollController,
                   reverse: true,
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final isMe = message.senderId != widget.otherUser.uid;
+                    final isMe = message.senderId == 'demo_user';
 
                     return Align(
                       alignment:
