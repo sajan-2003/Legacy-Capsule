@@ -88,7 +88,7 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   Widget _buildFriendsList() {
     return StreamBuilder<List<UserProfile>>(
-      stream: _friendsService.getFriends(),
+      stream: _friendsService.getFriendsStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
@@ -128,7 +128,7 @@ class _FriendsScreenState extends State<FriendsScreen>
 
   Widget _buildRequestsList() {
     return StreamBuilder<List<FriendRequest>>(
-      stream: _friendsService.getIncomingFriendRequests(),
+      stream: _friendsService.getIncomingRequestsStream(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('Error: ${snapshot.error}'));
@@ -165,7 +165,7 @@ class _FriendsScreenState extends State<FriendsScreen>
                   IconButton(
                     icon: const Icon(Icons.check, color: Colors.green),
                     onPressed: () =>
-                        _friendsService.acceptFriendRequest(req.id, req.fromId),
+                        _friendsService.acceptFriendRequest(req),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.red),
