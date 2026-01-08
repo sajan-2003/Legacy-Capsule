@@ -25,6 +25,12 @@ class _FriendsScreenState extends State<FriendsScreen>
     _tabController = TabController(length: 3, vsync: this);
   }
 
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
   Future<void> _syncContacts() async {
     setState(() => _isLoadingContacts = true);
     try {
