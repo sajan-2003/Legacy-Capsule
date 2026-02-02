@@ -53,6 +53,11 @@ class StorageService {
     return box.get(key, defaultValue: "") as String;
   }
 
+  Map<String, String> getAllPlans() {
+    final box = Hive.box(_plansBoxName);
+    return box.toMap().map((key, value) => MapEntry(key.toString(), value.toString()));
+  }
+
   // --- Achievement Tracking ---
   Future<void> saveAchievement(DateTime date, bool? achieved) async {
     final box = Hive.box(_achievementsBoxName);
