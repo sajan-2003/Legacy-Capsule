@@ -78,6 +78,7 @@ class _FriendsScreenState extends State<FriendsScreen>
           style: theme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w900,
             letterSpacing: -0.5,
+            fontSize: 22,
           ),
         ),
         bottom: TabBar(
@@ -88,7 +89,7 @@ class _FriendsScreenState extends State<FriendsScreen>
           indicatorColor: theme.colorScheme.primary,
           indicatorWeight: 3,
           indicatorSize: TabBarIndicatorSize.label,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
           tabs: const [
             Tab(text: 'MY FRIENDS'),
             Tab(text: 'REQUESTS'),

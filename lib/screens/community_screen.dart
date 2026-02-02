@@ -51,7 +51,7 @@ class _CommunityScreenState extends State<CommunityScreen>
       appBar: AppBar(
         backgroundColor: theme.colorScheme.surface,
         elevation: 0,
-        toolbarHeight: 56, // Explicit height
+        toolbarHeight: 56,
         title: _headerSearching
             ? TextField(
                 controller: widget.searchController,
@@ -91,9 +91,9 @@ class _CommunityScreenState extends State<CommunityScreen>
           indicatorWeight: 2,
           labelPadding: EdgeInsets.zero,
           tabs: const [
-            Tab(height: 40, text: "Explore"),
-            Tab(height: 40, text: "Friends"),
-            Tab(height: 40, text: "Groups"),
+            Tab(height: 48, text: "Explore"),
+            Tab(height: 48, text: "Friends"),
+            Tab(height: 48, text: "Groups"),
           ],
         ),
       ),
@@ -147,7 +147,7 @@ class _ExploreTabState extends State<_ExploreTab>
             }
 
             return ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: EdgeInsets.zero,
               itemCount: posts.length,
               itemBuilder: (context, index) {
                 final memory = posts[index];
@@ -210,28 +210,22 @@ class _PostCardState extends State<_PostCard> {
     final dateFormat = DateFormat('MMM d, yyyy');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: EdgeInsets.zero,
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: isDark
-                ? theme.colorScheme.onSurface.withAlpha(25)
-                : const Color(0xFFF1F5F9)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withAlpha(isDark ? 51 : 10),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? theme.colorScheme.onSurface.withAlpha(25) : const Color(0xFFF1F5F9),
+            width: 1,
           ),
-        ],
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
             child: Row(
               children: [
                 CircleAvatar(
@@ -270,7 +264,7 @@ class _PostCardState extends State<_PostCard> {
 
           // Description
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -311,7 +305,7 @@ class _PostCardState extends State<_PostCard> {
 
           // Stats
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: Row(
               children: [
                 Icon(Icons.favorite,
@@ -333,11 +327,11 @@ class _PostCardState extends State<_PostCard> {
             ),
           ),
 
-          const Divider(height: 1, indent: 12, endIndent: 12),
+          const Divider(height: 1, indent: 16, endIndent: 16),
 
           // Actions
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
             child: Row(
               children: [
                 Expanded(
@@ -398,7 +392,7 @@ class _PostCardState extends State<_PostCard> {
                       },
                     ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
                     child: InkWell(
                       onTap: widget.onTap,
                       child: Container(
@@ -571,29 +565,23 @@ class _FriendsTabState extends State<_FriendsTab>
     final isDark = theme.brightness == Brightness.dark;
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.zero,
       itemCount: 5,
       itemBuilder: (context, index) {
         return Container(
-          margin: const EdgeInsets.only(bottom: 10),
+          margin: EdgeInsets.zero,
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-                color: isDark
-                    ? theme.colorScheme.onSurface.withAlpha(25)
-                    : const Color(0xFFF1F5F9)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(isDark ? 51 : 10),
-                blurRadius: 6,
-                offset: const Offset(0, 2),
+            border: Border(
+              bottom: BorderSide(
+                color: isDark ? theme.colorScheme.onSurface.withAlpha(25) : const Color(0xFFF1F5F9),
+                width: 1,
               ),
-            ],
+            ),
           ),
           child: ListTile(
             contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             leading: CircleAvatar(
               radius: 18,
               backgroundColor: theme.colorScheme.primary.withAlpha(25),

@@ -453,7 +453,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _buildMemoriesTab(ThemeData theme, bool isDark) {
     if (_isLoading) {
       return ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.zero,
         itemCount: 3,
         itemBuilder: (context, index) => const MemorySkeleton(),
       );
@@ -474,7 +474,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       child: filteredMemories.isEmpty && !_isSearching
           ? _buildEmptyJournal(theme)
           : ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              padding: EdgeInsets.zero,
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 if (!_isSearching)
@@ -485,6 +485,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     onToggleLock: () {},
                     onTap: () {},
                     isDemo: true,
+                    fullWidth: true,
                   ),
                 ...filteredMemories.map((memory) => MemoryCard(
                   key: ValueKey(memory.id),
@@ -494,6 +495,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   onTap: () {
                     Navigator.push(context, MaterialPageRoute(builder: (_) => MemoryDetailScreen(memory: memory, onDelete: _deleteMemory, onToggleLock: _toggleLock)));
                   },
+                  fullWidth: true,
                 )),
               ],
             ),
@@ -1081,6 +1083,7 @@ class MemoryCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onToggleLock;
   final bool isDemo;
+  final bool fullWidth;
 
   const MemoryCard({
     super.key,
@@ -1089,6 +1092,7 @@ class MemoryCard extends StatelessWidget {
     required this.onDelete,
     required this.onToggleLock,
     this.isDemo = false,
+    this.fullWidth = false,
   });
 
   @override
@@ -1098,12 +1102,17 @@ class MemoryCard extends StatelessWidget {
     final hasMedia = memory.imageUrls.isNotEmpty && (memory.type == MemoryType.video || memory.type == MemoryType.photo);
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: EdgeInsets.only(bottom: fullWidth ? 0 : 16, left: fullWidth ? 0 : 16, right: fullWidth ? 0 : 16),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.05) : const Color(0xFFF1F5F9)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
+        borderRadius: fullWidth ? BorderRadius.zero : BorderRadius.circular(16),
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? theme.colorScheme.onSurface.withValues(alpha: 0.05) : const Color(0xFFF1F5F9),
+            width: 1,
+          ),
+        ),
+        boxShadow: fullWidth ? [] : [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 4, offset: const Offset(0, 2))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1134,9 +1143,9 @@ class MemoryCard extends StatelessWidget {
           ),
           if (hasMedia)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: EdgeInsets.symmetric(horizontal: fullWidth ? 0 : 16, vertical: 8),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: fullWidth ? BorderRadius.zero : BorderRadius.circular(12),
                 child: memory.type == MemoryType.video 
                   ? _FullControlVideoPlayer(videoPath: memory.imageUrls.first, onTap: onTap)
                   : GestureDetector(
