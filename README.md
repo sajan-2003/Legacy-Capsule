@@ -338,8 +338,7 @@ IT Undergraduate, University of Moratuwa
 
 For questions, feedback, or collaboration inquiries:
 
-- 📧 Email: *your.email@example.com*
-- 💼 LinkedIn: *[Your LinkedIn Profile](https://linkedin.com/in/your-profile)*
+- 📧 Email: *Sajanchamika2003@gmail.com*
 - 🐙 GitHub: [@sajan-2003](https://github.com/sajan-2003)
 
 ---
