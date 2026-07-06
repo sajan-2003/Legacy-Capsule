@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../models/chat_message.dart';
-import '../models/user.dart';
 
 class ChatService extends ChangeNotifier {
   // Internal mock database for demo
@@ -15,7 +14,7 @@ class ChatService extends ChangeNotifier {
   }
 
   void _initMockData() {
-    final room1Id = 'demo_room_1';
+    const room1Id = 'demo_room_1';
     _chatRooms.add(ChatRoom(
       id: room1Id,
       participants: [_currentUserId, '1'],
