@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
-import '../models/memory.dart';
-import '../services/storage_service.dart';
+import '../../models/memory.dart';
+import '../../services/storage_service.dart';
 
 class AddMemoryScreen extends StatefulWidget {
   final Function(Memory) onSave;

@@ -1,10 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
-import '../models/chat_message.dart';
-import '../models/user.dart';
-import '../services/chat_service.dart';
-import 'chat_room_screen.dart';
-import 'friends_screen.dart';
+import '../../services/chat_service.dart';
 
 class ChatListScreen extends StatefulWidget {
   const ChatListScreen({super.key});

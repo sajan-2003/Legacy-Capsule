@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/user.dart';
-import '../services/storage_service.dart';
+import '../../models/user.dart';
+import '../../services/storage_service.dart';
 import 'update_profile_screen.dart';
 
 class ProfileViewScreen extends StatefulWidget {

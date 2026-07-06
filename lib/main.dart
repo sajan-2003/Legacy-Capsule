@@ -1,8 +1,7 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'screens/front_page.dart';
-import 'themes/app_theme.dart';
+import 'features/vault/front_page.dart';
+import 'core/theme/app_theme.dart';
 import 'services/storage_service.dart';
 
 void main() async {

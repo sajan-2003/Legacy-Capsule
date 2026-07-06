@@ -6,17 +6,17 @@ import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/memory.dart';
-import '../services/storage_service.dart';
-import '../widgets/skeleton_loader.dart';
+import '../../models/memory.dart';
+import '../../services/storage_service.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'add_memory_screen.dart';
-import 'profile_view_screen.dart';
-import 'profile_screen.dart';
+import '../profile/profile_view_screen.dart';
+import '../profile/profile_screen.dart';
 import 'memory_detail_screen.dart';
 import 'time_lock_screen.dart';
 import 'notifications_screen.dart';
 import 'community_screen.dart';
-import 'chat_list_screen.dart';
+import '../chat/chat_list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;

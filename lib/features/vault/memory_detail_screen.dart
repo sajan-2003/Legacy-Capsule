@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/memory.dart';
-import '../services/storage_service.dart';
+import '../../models/memory.dart';
+import '../../services/storage_service.dart';
 
 class MemoryDetailScreen extends StatefulWidget {
   final Memory memory;

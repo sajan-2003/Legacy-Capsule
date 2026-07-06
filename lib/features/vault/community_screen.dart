@@ -5,8 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:video_player/video_player.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/memory.dart';
-import '../services/storage_service.dart';
+import '../../models/memory.dart';
+import '../../services/storage_service.dart';
 import 'memory_detail_screen.dart';
 
 class CommunityScreen extends StatefulWidget {

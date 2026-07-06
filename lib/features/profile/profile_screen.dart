@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import '../models/user.dart';
-import '../services/storage_service.dart';
-import '../services/auth_service.dart';
-import 'front_page.dart';
-import 'security_settings_screen.dart';
-import 'time_lock_screen.dart';
+import '../../models/user.dart';
+import '../../services/storage_service.dart';
+import '../../services/auth_service.dart';
+import '../vault/front_page.dart';
+import '../vault/security_settings_screen.dart';
+import '../vault/time_lock_screen.dart';
 import 'update_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/user.dart';
-import '../services/friends_service.dart';
-import '../services/chat_service.dart';
-import 'chat_room_screen.dart';
+import '../../models/user.dart';
+import '../../services/friends_service.dart';
+import '../../services/chat_service.dart';
+import '../chat/chat_room_screen.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});

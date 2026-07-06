@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-import 'home_screen.dart';
+import '../../services/auth_service.dart';
+import '../vault/home_screen.dart';
 
 class SignupScreen extends StatefulWidget {
   final Function(bool) onThemeChanged;
