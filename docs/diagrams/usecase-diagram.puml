@@ -1,0 +1,8 @@
+@startuml
+left to right direction
+actor User
+rectangle "Legacy Capsule" {
+  usecase "Add Memory"
+}
+User -- "Add Memory"
+@enduml

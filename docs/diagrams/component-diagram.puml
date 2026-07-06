@@ -1,0 +1,3 @@
+@startuml
+[Mobile App] -- [Firebase]
+@enduml

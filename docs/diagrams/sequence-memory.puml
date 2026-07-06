@@ -1,0 +1,4 @@
+@startuml
+actor User
+User -> App: Create Memory
+@enduml

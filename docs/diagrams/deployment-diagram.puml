@@ -1,0 +1,4 @@
+@startuml
+node "User Device"
+node "Firebase"
+@enduml

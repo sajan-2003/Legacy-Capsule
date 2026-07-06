@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'screens/front_page.dart';
-import 'theme.dart';
+import 'themes/app_theme.dart';
 import 'services/storage_service.dart';
 
 void main() async {
